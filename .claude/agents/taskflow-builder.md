@@ -5,6 +5,9 @@ tools: Read, Edit, Write, Bash, Grep, Glob
 mcpServers:
   - taskflow
 memory: project
+model:
+  - Claude Sonnet 4.6
+  - Raptor mini (Preview)
 ---
 
 You are the **TaskFlow Builder** agent. You implement features and produce a build report. **You process one task per invocation** — complete it fully, then stop and report.

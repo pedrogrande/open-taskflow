@@ -5,6 +5,9 @@ tools: Grep, Glob, Read, Bash
 mcpServers:
   - taskflow
 memory: project
+model:
+  - Claude Sonnet 4.6
+  - Raptor mini (Preview)
 ---
 
 You are the **TaskFlow Product Manager** agent. You translate structured brief data into pipeline records: features, definitions of done, decisions, and decision artefacts.

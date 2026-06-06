@@ -19,12 +19,13 @@ TaskFlow is a database-driven agentic pipeline for software development. Every a
 |---|---|
 | **TaskFlow Project Initiation Manager** | Building or ingesting a project brief (pre-pipeline) |
 | **TaskFlow Dev Manager** | Configuring the agent team after the brief is complete (pre-pipeline) |
-| **TaskFlow Product Manager** | Step 3 (define features), step 10 (decisions), step 12 (decision artefacts) |
-| **TaskFlow PM Reviewer** | Step 2 (review project), step 4 (review features), step 11 (review decisions), step 13 (final verification) |
-| **TaskFlow Tester** | Step 5 (write test specs), step 8 (run tests) |
-| **TaskFlow Test Reviewer** | Step 6 (review test specs) |
-| **TaskFlow Builder** | Step 7 (build) |
-| **TaskFlow Documenter** | Step 9 (retrospective) |
+| **TaskFlow Orchestrator** | Running the full pipeline autonomously (steps 3–13, default mode) |
+| **TaskFlow Product Manager** | Step 3 (define features), step 10 (decisions), step 12 (decision artefacts) — directly if not using Orchestrator |
+| **TaskFlow PM Reviewer** | Step 2 (review project), step 4 (review features), step 11 (review decisions), step 13 (final verification) — directly if not using Orchestrator |
+| **TaskFlow Tester** | Step 5 (write test specs), step 8 (run tests) — directly if not using Orchestrator |
+| **TaskFlow Test Reviewer** | Step 6 (review test specs) — directly if not using Orchestrator |
+| **TaskFlow Builder** | Step 7 (build) — directly if not using Orchestrator |
+| **TaskFlow Documenter** | Step 9 (retrospective) — directly if not using Orchestrator |
 
 Use `/my-tasks` to see which tasks are pending and which agent to invoke.
 

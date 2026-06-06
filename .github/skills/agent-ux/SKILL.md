@@ -8,7 +8,7 @@ user-invocable: false
 
 ## askQuestions
 
-Use `#vscode/askQuestions` any time you need structured input from the user before proceeding. It renders a compact form UI — do not ask questions in prose when this tool is available.
+Use `vscode/askQuestions` any time you need structured input from the user before proceeding. It renders a compact form UI — do not ask questions in prose when this tool is available.
 
 ### When to use it
 
@@ -34,6 +34,7 @@ Use `#vscode/askQuestions` any time you need structured input from the user befo
 ### Patterns
 
 **Binary choice with recommended default:**
+
 ```json
 {
   "header": "Include auth",
@@ -47,6 +48,7 @@ Use `#vscode/askQuestions` any time you need structured input from the user befo
 ```
 
 **Multi-select:**
+
 ```json
 {
   "header": "Target platforms",
@@ -62,6 +64,7 @@ Use `#vscode/askQuestions` any time you need structured input from the user befo
 ```
 
 **Freeform short answer:**
+
 ```json
 {
   "header": "Organisation name",
@@ -73,7 +76,7 @@ Use `#vscode/askQuestions` any time you need structured input from the user befo
 
 ## memory
 
-Use `#vscode/memory` to persist working state that needs to survive across turns in this conversation.
+Use `vscode/memory` to persist working state that needs to survive across turns in this conversation.
 
 ### Scope selection
 

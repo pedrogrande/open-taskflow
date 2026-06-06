@@ -1,6 +1,23 @@
 # TaskFlow
 
-A **database-driven agentic pipeline** for software development. Clone this repo into any project and VS Code automatically wires up the MCP server, agents, and skills. Every agent action is authorised and scoped by a task record. The database is the single source of truth for pipeline state, permissions, and context.
+**A structured, database-driven development pipeline for VS Code + GitHub Copilot.**
+
+TaskFlow gives your AI agents a shared memory, a defined process, and clear roles. Instead of one agent doing everything in one long chat, each development activity is handled by a specialist agent — at the right step, with the right context, and only when the previous step is approved.
+
+Clone this repo into any project. VS Code wires up the MCP server, agents, and skills automatically. The SQLite database is the single source of truth: it records every decision, tracks every task, and gives each agent exactly the context it needs — nothing more.
+
+---
+
+## Why TaskFlow?
+
+Without structure, AI-assisted development tends to collapse into a single long conversation. The context grows stale, the agent loses track of what was approved, and there's no audit trail when something goes wrong.
+
+TaskFlow solves this by treating development like a proper process:
+
+- **Brief → plan → build → test → document** — in order, not all at once
+- Every agent action is gated by a task record. An agent can only submit work for a step if it holds a valid claim on that task.
+- Decisions, retros, and test results are stored in the database — not buried in chat history.
+- The Orchestrator runs the whole thing automatically, escalating to you only when something is genuinely blocked.
 
 ---
 
@@ -8,6 +25,10 @@ A **database-driven agentic pipeline** for software development. Clone this repo
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) — `brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - VS Code 1.99+ with GitHub Copilot (agent mode enabled)
+
+> **Agent mode** is the VS Code Copilot feature that lets you @-mention specialist agents in chat. Enable it in Settings → GitHub Copilot → Chat: Agent Mode.
+
+<!-- screenshot: VS Code settings panel showing Chat Agent Mode enabled -->
 
 ---
 
@@ -22,7 +43,7 @@ git clone https://github.com/pedrogrande/open-taskflow.git my-project
 cd my-project
 ```
 
-If you want to add TaskFlow to an **existing** project, copy the following directories and files into your workspace root:
+If you want to add TaskFlow to an **existing** project, copy the following into your workspace root:
 
 ```
 .github/
@@ -35,13 +56,15 @@ If you want to add TaskFlow to an **existing** project, copy the following direc
 
 ### 2. Open the workspace in VS Code
 
-VS Code detects `.vscode/mcp.json` and starts the TaskFlow MCP server automatically via `uv`. On first run, `uv` downloads the `mcp` dependency — no manual `pip install` required.
+VS Code detects `.vscode/mcp.json` on startup and launches the TaskFlow MCP server automatically via `uv`. On first run `uv` downloads the single `mcp` dependency — no manual `pip install` required.
 
-You should see **taskflow** appear in **Configure Tools** (gear icon in the Chat view).
+You'll see **taskflow** listed under **Configure Tools** (the gear icon in the Copilot chat input bar). That confirms the MCP server is running and tools are available.
 
-### 3. Add `.taskflow/` to your project's `.gitignore`
+<!-- screenshot: Copilot chat input bar with Configure Tools open, showing "taskflow" in the list -->
 
-The database and audit log are runtime files and should not be committed:
+### 3. Add `.taskflow/` to your `.gitignore`
+
+The database and audit log are runtime files — don't commit them:
 
 ```
 .taskflow/taskflow.db
@@ -49,73 +72,111 @@ The database and audit log are runtime files and should not be committed:
 .taskflow/server/__pycache__/
 ```
 
-These are already in the `.gitignore` included with this repo. If you merged TaskFlow into an existing project, add these lines to your own `.gitignore`.
+These are already in the `.gitignore` included with this repo. If you merged into an existing project, add these lines manually.
 
 ---
 
-## Quick start
+## How it works
 
-There are two ways to initiate a project. Use **Path A** for a thorough brief; use **Path B** conversationally.
+TaskFlow has three phases: **Initiate**, **Configure**, and **Run**.
 
-### Path A — Project brief form (recommended)
+### Phase 1 — Initiate: build the project brief
 
-1. Open `.taskflow/project-brief-form.html` in any browser — it runs fully offline, no server needed.
-2. Complete all sections: identity, goals, features, workflows, NFRs, integrations, risks, timeline.
-3. Click **Generate brief** — a `project-brief-<name>.json` file downloads.
-4. In VS Code Copilot chat, invoke the **TaskFlow Project Initiation Manager**:
+The project brief is the foundation. All agents draw context from it throughout the pipeline. There are two ways to create one.
 
-   ```
-   @TaskFlow Project Initiation Manager
-   ```
+#### Option A — Project brief form (recommended)
 
-   Tell it you have a brief JSON file and provide the path or paste the contents. The agent calls `ingest_brief`, which parses all structured data into the database and seeds the first pipeline task.
-5. Proceed to [Working the pipeline](#working-the-pipeline).
+Open `.taskflow/project-brief-form.html` in any browser — it runs fully offline.
 
-### Path B — Conversational brief
+<!-- screenshot: project-brief-form.html open in a browser, showing the Features section -->
 
-1. Open your project workspace in VS Code.
-2. Invoke the **TaskFlow Project Initiation Manager** in chat:
+Complete all sections: identity, goals, features, workflows, NFRs, integrations, risks, and timeline. Click **Generate brief** — a `project-brief-<name>.json` file downloads. Then invoke the **TaskFlow Project Initiation Manager** in VS Code Copilot chat:
 
-   ```
-   @TaskFlow Project Initiation Manager I want to start a new project
-   ```
+```
+@TaskFlow Project Initiation Manager
+```
 
-   The agent guides you through the brief one question at a time, recording each answer directly into the database, then hands off to the Product Manager when the brief is complete.
-3. Proceed to [Working the pipeline](#working-the-pipeline).
+Tell it you have a brief JSON file and provide the path or paste the contents. The agent calls `ingest_brief`, which parses all structured data into the database and seeds the first pipeline task.
 
-### Working the pipeline
+<!-- screenshot: VS Code Copilot chat showing @TaskFlow Project Initiation Manager responding after ingest_brief completes -->
 
-Invoke the **TaskFlow Orchestrator** — it runs the entire pipeline autonomously:
+#### Option B — Conversational brief
+
+Skip the form and let the agent interview you directly:
+
+```
+@TaskFlow Project Initiation Manager I want to start a new project
+```
+
+The agent guides you through the brief one question at a time — asking about your problem, users, integrations, and constraints — recording each answer to the database as you go.
+
+<!-- screenshot: VS Code Copilot chat showing the Project Initiation Manager asking a question with the askQuestions UI -->
+
+---
+
+### Phase 2 — Configure: set up the agent team (recommended)
+
+Once the brief is ingested, invoke the **TaskFlow Dev Manager**:
+
+```
+@TaskFlow Dev Manager
+```
+
+The Dev Manager reads your brief, extracts your tech stack and integrations, queries the [official MCP server registry](https://registry.modelcontextprotocol.io) for relevant servers, and presents recommendations:
+
+<!-- screenshot: VS Code Copilot chat showing Dev Manager askQuestions panel with MCP server recommendations -->
+
+For each confirmed addition, it edits `.vscode/mcp.json` and updates the relevant agent `tools:` arrays. All decisions are recorded to the database via `record_team_setup`.
+
+Skip this phase if your project has no specific integrations or if you want to start building immediately — the pipeline works without it.
+
+---
+
+### Phase 3 — Run: work the pipeline
+
+Invoke the **TaskFlow Orchestrator**:
 
 ```
 @TaskFlow Orchestrator
 ```
 
-The Orchestrator invokes each specialist agent in order, monitors task advancement, handles retries, and escalates to you only when a task is genuinely blocked (after 3 failed attempts) or a decision requires your input.
+The Orchestrator invokes each specialist agent in order, re-reads pipeline state after each step to confirm advancement, and handles retries automatically. It escalates to you with a clear question only when a task is genuinely blocked.
 
-Alternatively, invoke individual agents manually using `/my-tasks` to see what each agent needs to do next.
+<!-- screenshot: VS Code Copilot chat showing the Orchestrator reporting step completions and a pipeline summary -->
+
+Alternatively, work the pipeline manually — use `/my-tasks` to see what's pending, then invoke the appropriate agent directly.
 
 ---
 
-## Slash commands
+## The 13-step pipeline
 
-| Command | Description |
-|---|---|
-| `/start-project` | Start a project from free-text or a brief file (Path B) |
-| `/my-tasks` | Show pending tasks for a chosen agent role |
-| `/pipeline-status` | Show the full pipeline state for a project |
+| Step | Agent | Activity |
+|---|---|---|
+| 1 | Project Initiation Manager | Brief ingested, project created |
+| 2 | PM Reviewer | Approves project scope |
+| 3 | Product Manager | Defines features + definitions of done |
+| 4 | PM Reviewer | Approves feature set — spawns per-feature tasks |
+| 5 | Tester | Writes test specs per feature |
+| 6 | Test Reviewer | Approves test specs |
+| 7 | Builder | Implements the feature |
+| 8 | Tester | Runs tests against the build |
+| 9 | Documenter | Writes retrospective + recommendations |
+| 10 | Product Manager | Writes decisions on recommendations |
+| 11 | PM Reviewer | Approves decisions |
+| 12 | Product Manager | Writes decision artefacts (patterns, gotchas, notes) |
+| 13 | PM Reviewer | Final verification against success metrics |
 
-For the form-based path, use `ingest_brief` directly via the **TaskFlow Product Manager** agent rather than `/start-project`.
+Steps 5–13 repeat per feature. New-feature decisions from step 9 feed back to step 3 as the next cycle's backlog.
 
 ---
 
 ## Agents
 
-| Agent | Role in pipeline |
+| Agent | Role |
 |---|---|
-| **TaskFlow Project Initiation Manager** | Builds the project brief conversationally or ingests a brief form JSON (pre-pipeline) |
-| **TaskFlow Dev Manager** | Reviews the brief, identifies relevant MCP servers and skills, enriches the agent team (pre-pipeline) |
-| **TaskFlow Orchestrator** | Runs the full pipeline autonomously — invokes all specialist agents as subagents, handles retries, escalates when blocked |
+| **TaskFlow Project Initiation Manager** | Creates the project brief conversationally or ingests a brief JSON (pre-pipeline) |
+| **TaskFlow Dev Manager** | Configures the agent team for your specific tech stack (pre-pipeline) |
+| **TaskFlow Orchestrator** | Runs steps 3–13 autonomously — the default way to work the pipeline |
 | **TaskFlow Product Manager** | Defines features, decisions, and decision artefacts (steps 3, 10, 12) |
 | **TaskFlow PM Reviewer** | Reviews and approves PM outputs (steps 2, 4, 11, 13) |
 | **TaskFlow Tester** | Writes test specs and runs tests (steps 5, 8) |
@@ -123,84 +184,108 @@ For the form-based path, use `ingest_brief` directly via the **TaskFlow Product 
 | **TaskFlow Builder** | Implements features (step 7) |
 | **TaskFlow Documenter** | Writes retrospective and recommendations (step 9) |
 
+<!-- screenshot: VS Code Copilot chat showing the @-mention agent picker with all TaskFlow agents listed -->
+
 ---
 
-## Project brief form
+## Slash commands
 
-The brief form (`.taskflow/project-brief-form.html`) is a single offline HTML file — no install, no server, no dependencies.
+| Command | What it does |
+|---|---|
+| `/start-project` | Start a project from free-text description or a brief file |
+| `/my-tasks` | Show pending tasks for a chosen agent role |
+| `/pipeline-status` | Show the full pipeline state for a project |
 
-**Sections captured:**
+---
+
+## Project brief form — what's captured
+
+The form (`.taskflow/project-brief-form.html`) is a single offline HTML file — no install, no server, no dependencies. It auto-saves to `localStorage` every 2 seconds.
 
 | Section | What agents use it for |
 |---|---|
-| Project identity & problem | All agents — project scope and context |
-| Goals & success metrics | PM (step 3 feature alignment); PM Reviewer (step 13 final verification) |
-| User roles & workflows | PM (step 3 user-centric features); Tester (step 5 test scenario design) |
-| Features (Must / Should / Could) | PM (step 3 starting point — promote Must features first) |
-| Non-functional requirements | Builder (step 7 implementation constraints); Tester (step 8 verification) |
-| Integrations | Builder (step 7 — system, direction, auth method, phase 1 flag) |
-| Risks | PM (steps 10/12 — seeded as initial decision artefacts) |
-| Release phases | PM (step 3 — assigns features to cycles) |
-| Timeline & deadline | All reviewers — context for prioritisation |
-
-**Form features:**
-
-- Dynamic add/remove rows for features, roles, workflows, integrations, risks
-- Toggle rows for NFRs — only enabled constraints are stored; disabled ones produce no noise in the DB
-- Client-side validation before download (required fields, at least one Must feature, at least one platform)
-- Auto-saves to `localStorage` every 2 seconds — reload the page and it offers to restore the draft
-- Downloads as `project-brief-<slug>.json` — the file is the pipeline entry artefact
+| Project identity & problem | All agents — scope and context |
+| Goals & success metrics | PM (feature alignment); PM Reviewer (step 13 final verification) |
+| User roles & workflows | PM (user-centric features); Tester (test scenario design) |
+| Features (Must / Should / Could) | PM (step 3 starting point — Must features promoted first) |
+| Non-functional requirements | Builder (implementation constraints); Tester (verification) |
+| Integrations | Dev Manager (MCP server research); Builder (system, auth method, phase flag) |
+| Risks | PM (seeded as initial decision artefacts in steps 10/12) |
+| Release phases | PM (assigns features to cycles) |
+| Timeline & deadline | All reviewers — prioritisation context |
 
 ---
 
-## Pipeline overview
+## Pipeline diagram
 
 ```
-.taskflow/project-brief-form.html  →  project-brief.json  →  ingest_brief
-          OR
-@TaskFlow Project Initiation Manager (conversational)
-      │
-      ▼  (recommended)
-@TaskFlow Dev Manager
-  Reads brief → researches MCP servers + skills → enriches agent team
-      │
-      ▼
-@TaskFlow Orchestrator
-  Runs steps 3–13 autonomously, invoking specialist agents as subagents
-      │
-      ▼
-  Step 3: PM defines features + DoD
-      │
-      ▼
-  Step 4: PM Reviewer approves → spawns step 5 per feature
-      │
-      ▼ (per feature)
-  Step 5: Tester writes test specs
-  Step 6: Test Reviewer approves
-  Step 7: Builder implements
-  Step 8: Tester runs tests ──(fail × 3 → blocked)
-      │ pass
-      ▼
-  Step 9: Documenter writes retro (auto-advances)
-  Step 10: PM writes decisions
-  Step 11: PM Reviewer approves
-  Step 12: PM writes decision artefacts
-  Step 13: PM Reviewer final verification
-      │
-      └──► Step 3 (next cycle)
+Phase 1: Initiate
+  Brief form → project-brief.json → ingest_brief
+    OR
+  @TaskFlow Project Initiation Manager (conversational)
+        │
+        ▼
+Phase 2: Configure (recommended)
+  @TaskFlow Dev Manager
+    Reads brief → queries MCP registry → enriches agent team
+        │
+        ▼
+Phase 3: Run
+  @TaskFlow Orchestrator
+    Steps 3–13 autonomously
+        │
+        ├─ Step 3:  PM defines features + DoD
+        ├─ Step 4:  PM Reviewer approves → spawns per-feature tasks
+        │
+        │  (per feature)
+        ├─ Step 5:  Tester writes test specs
+        ├─ Step 6:  Test Reviewer approves
+        ├─ Step 7:  Builder implements
+        ├─ Step 8:  Tester runs tests ──(fail × 3 → blocked → you decide)
+        │
+        ├─ Step 9:  Documenter writes retro
+        ├─ Step 10: PM writes decisions
+        ├─ Step 11: PM Reviewer approves
+        ├─ Step 12: PM writes decision artefacts
+        └─ Step 13: PM Reviewer final verification
+                │
+                └──► Step 3 (next cycle, new features from backlog)
 ```
-
-New-feature decisions go to the **feature backlog**. The PM promotes them in step 3 of the next cycle.
 
 ---
 
-## Schema summary
+## Project layout
 
-**Pipeline tables** (populated by agents during the cycle):
+```
+open-taskflow/
+  .github/
+    agents/                          # 9 agent .agent.md files
+    skills/                          # Skill directories used by agents
+    copilot-instructions.md          # Agent routing + tool reference
+  .taskflow/
+    server/
+      mcp_server.py                  # FastMCP server (all tools)
+      init.sql                       # Schema + pipeline seed data
+    project-brief-form.html          # Offline brief form
+    project-brief-template.md        # Reference template
+    taskflow.db                      # Runtime DB (gitignored — auto-created)
+    audit.log                        # Tool call audit trail (gitignored)
+  .vscode/
+    mcp.json                         # Workspace MCP server definition
+    settings.json                    # Skills + hooks locations
+    hooks.json                       # SessionStart + PostToolUse hooks
+  .gitignore
+  README.md
+```
+
+---
+
+## Schema reference
+
+**Pipeline tables** (written by agents during the cycle):
 
 | Table | Purpose |
 |---|---|
-| `pipeline_steps` | 13-step workflow definition (seed data) |
 | `projects` | Project records with scalar brief fields + raw JSON |
 | `features` | Feature records per project |
 | `definitions_of_done` | Verifiable DoD criteria per feature |
@@ -213,61 +298,38 @@ New-feature decisions go to the **feature backlog**. The PM promotes them in ste
 | `decision_artefacts` | Patterns, gotchas, notes from step 12 |
 | `feature_backlog` | New features queued for future cycles |
 | `tasks` | Pipeline task queue (the engine) |
+| `pipeline_steps` | 13-step workflow definition (seed data) |
+| `team_setup` | Agent team configuration recorded by Dev Manager |
 
 **Brief-derived tables** (populated by `ingest_brief` from the form JSON):
 
 | Table | Purpose |
 |---|---|
-| `project_outcomes` | Stated goals from the brief |
+| `project_outcomes` | Stated goals |
 | `success_metrics` | Measurable targets for step-13 verification |
 | `user_roles` | Actor descriptions and primary workflows |
-| `stakeholders` | Named stakeholders and their authority |
+| `stakeholders` | Named stakeholders and authority |
 | `key_workflows` | Actor → trigger → steps → outcome journeys |
-| `non_functional_requirements` | Enabled NFR constraints only (performance, security, etc.) |
+| `non_functional_requirements` | Enabled NFR constraints only |
 | `integrations` | External systems with direction, auth method, phase flag |
 | `project_risks` | Risks with likelihood/impact/mitigation |
 | `release_phases` | Phase-by-phase scope and target dates |
-| `brief_features` | Feature suggestions from the form (PM refines these at step 3) |
+| `brief_features` | Feature suggestions from the form (PM refines at step 3) |
 
-All brief-derived tables are returned by `read_task_context` via the `brief` key — agents never need to re-read the JSON file.
-
----
-
-## Project layout
-
-```
-open-taskflow/
-  .github/
-    agents/                          # 9 agent definition files
-    skills/                          # 12 skill directories
-    copilot-instructions.md          # Agent routing + tool reference
-  .taskflow/
-    server/
-      mcp_server.py                  # FastMCP server (all tools)
-      init.sql                       # Schema + pipeline seed data
-    project-brief-form.html          # Offline brief form → downloads project-brief.json
-    project-brief-template.md        # Reference template
-    taskflow.db                      # Runtime DB (gitignored — auto-created on first use)
-    audit.log                        # Tool call audit trail (gitignored)
-  .vscode/
-    mcp.json                         # Workspace MCP server definition
-    settings.json                    # Skills + hooks locations
-    hooks.json                       # SessionStart + PostToolUse hooks
-  .gitignore
-  README.md
-```
+All brief-derived tables are returned by `read_task_context` via the `brief` key — agents never re-read the original JSON file.
 
 ---
 
-## Blocked tasks
+## Unblocking a stuck task
 
-If a task reaches `retry_count = 3` it becomes `blocked`. To unblock:
+If a task hits `retry_count = 3` it becomes `blocked`. The Orchestrator will escalate to you with options. If you need to reset it manually:
 
 ```sql
 -- Reset for another attempt
 UPDATE tasks SET retry_count = 0, status = 'pending' WHERE id = <task_id>;
--- Or force-advance
+
+-- Or force-advance past a stuck step
 UPDATE tasks SET status = 'done' WHERE id = <task_id>;
 ```
 
-Then use `/pipeline-status` to see the updated state.
+Then use `/pipeline-status` to confirm the updated state.

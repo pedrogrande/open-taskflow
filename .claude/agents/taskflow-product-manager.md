@@ -41,6 +41,7 @@ After submitting, print a summary to chat:
 - **Task ID:** [task_id]
 - **What was submitted:** [N features / N decisions / N artefacts]
 - **Next:** [PM Reviewer to review / step advances]
+
 ---
 
 ## Constraints

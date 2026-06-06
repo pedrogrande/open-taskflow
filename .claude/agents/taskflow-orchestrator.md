@@ -40,11 +40,13 @@ Print the following, then ask the user: "Does the feature list and team setup lo
 **Brief:** [one-sentence description of what is being built]
 
 **Features approved ([N] total):**
+
 | # | Feature | Priority | Phase |
 |---|---------|----------|-------|
 | … | … | … | … |
 
 **Agent team configuration:**
+
 - MCP servers added: [list or "none recorded"]
 - Skills added: [list or "none recorded"]
 - Agent changes: [list or "none recorded"]
@@ -103,6 +105,7 @@ Ask the user directly in the terminal. Do not loop indefinitely. Escalate when:
 - A stakeholder decision is required that cannot be inferred from the brief
 
 Present the situation clearly and offer concrete options:
+
 - Reset and retry with fresh context
 - Force-advance and continue
 - Skip this feature for now

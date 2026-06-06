@@ -1,16 +1,16 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "mcp__taskflow__",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "{ printf '%s ' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"; cat; echo; } >> .taskflow/audit.log",
-            "continueOnError": true
-          }
-        ]
-      }
-    ]
-  }
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "mcp__taskflow__",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "{ printf '%s ' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"; cat; echo; } >> .taskflow/audit.log",
+						"continueOnError": true
+					}
+				]
+			}
+		]
+	}
 }

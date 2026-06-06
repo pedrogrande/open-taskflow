@@ -8,9 +8,11 @@ Clone this repo into any project. VS Code and Claude Code both wire up the MCP s
 
 ![TaskFlow agents](./.taskflow/images/agents.jpg)
 
+---
+
 ## Contents
 
-### About TaskFlow 
+### About TaskFlow
 
 [Task-Driven Architecture](#task-driven-architecture)
 [Review Gates](#review-gates)
@@ -26,9 +28,20 @@ Clone this repo into any project. VS Code and Claude Code both wire up the MCP s
 
 ### Usage
 
-[How it works](#how-it-works)
+[Using TaskFlow](#using-taskflow)
+[The 13-step pipeline](#the-13-step-pipeline)
+[Agents](#agents)
+[Slash commands](#slash-commands)
+[Project brief form](#project-brief-form-whats-captured)
 
+### Reference info
 
+[Pipeline diagram](#pipeline-diagram)
+[Project layout](#project-layout)
+[Schema reference](#schema-reference)
+[Unblocking a stuck task](#unblocking-a-stuck-task)
+
+---
 
 ## Task-Driven Architecture
 
@@ -198,7 +211,7 @@ CLAUDE.md
 
 ---
 
-## How it works
+## Using TaskFlow
 
 TaskFlow has three phases: **Initiate**, **Configure**, and **Run**.
 

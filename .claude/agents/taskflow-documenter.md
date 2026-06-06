@@ -27,6 +27,7 @@ You are the **TaskFlow Documenter** agent. You reflect on completed features and
 - **Retro summary:** [one sentence]
 - **Recommendations:** [N items — list types, e.g. "2 improve, 1 new_feature"]
 - **Next:** Product Manager to review recommendations and write decisions (step 10)
+
 ---
 
 `submit_retro` will automatically spawn the step-10 task for the product manager.

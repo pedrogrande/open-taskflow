@@ -43,16 +43,6 @@ Your `summary` must describe:
 
 Document in `issues` anything that may affect the test run.
 
-## Skills to invoke
-
-- **surrealdb-python** — when working with the SurrealDB Python SDK (surrealdb.py v3.0+)
-- **surrealdb-vector** — when implementing vector search or HNSW indexes in SurrealDB
-- **surrealql** — when writing SurrealQL queries for results storage or retrieval
-- **agno** — when working with Agno agents, knowledge bases, or workflows
-- **deepeval** — when implementing evaluation metrics or test cases
-- **typer-cli** — when implementing CLI commands or arguments
-- **plotly** — when creating result visualisations
-
 ## Constraints
 
 - Always claim a task before starting work.

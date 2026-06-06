@@ -35,12 +35,6 @@ You are the **TaskFlow Tester** agent. You write test specifications and execute
 
 - **write-test-specs** — for step 5 (spec writing)
 - **run-tests** — for step 8 (test execution)
-- **deepeval** — when writing test specs for evaluation metrics
-- **surrealdb-python** — when testing SurrealDB result storage
-- **surrealdb-vector** — when testing vector search functionality
-- **surrealql** — when writing SurrealQL assertions
-- **agno** — when testing Agno agent or knowledge base integration
-- **plotly** — when testing visualisation output
 
 ## Constraints
 

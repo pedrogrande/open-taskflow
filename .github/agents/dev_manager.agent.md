@@ -44,6 +44,7 @@ curl -s --request GET \
 Run a separate query for each major integration or stack component identified in step 1 (e.g. `search=supabase`, `search=stripe`, `search=postgres`). The `search` parameter does a substring match on server name.
 
 Key response fields to inspect per result:
+
 - `server.name` — display name
 - `server.description` — what it does
 - `_meta.io.modelcontextprotocol.registry/official.status` — prefer `active` servers
@@ -67,9 +68,50 @@ question: "Your brief names Supabase. Add the official Supabase MCP server so ag
 options: ["Yes — add it", "No — skip"]
 ```
 
-### 4. Apply confirmed changes
+### 4. Present a consolidated approval summary
 
-For each item the user confirms:
+Before writing any files or calling `record_team_setup`, print a full summary of all decisions to chat:
+
+---
+**Agent team configuration summary — [Project Name]**
+
+**MCP servers to add:**
+| Server | Purpose | Install command |
+|--------|---------|-----------------|
+| … | … | … |
+(or "None")
+
+**Skills to reference:**
+| Skill | Purpose | Agents |
+|-------|---------|--------|
+| … | … | … |
+(or "None")
+
+**Agent changes:**
+| Agent | Change |
+|-------|--------|
+| … | … |
+(or "None")
+
+**New agents to create:**
+| Agent | File |
+|-------|------|
+| … | … |
+(or "None")
+---
+
+Then use `vscode/askQuestions` to ask for final approval:
+```
+header: "Confirm agent team setup"
+question: "Does this look right? Approve to apply all changes, or request edits."
+options: ["Approve — apply all changes", "Make changes first"]
+```
+
+If the user requests changes, present individual items again via `vscode/askQuestions` and revise the plan. Do not write any files or call `record_team_setup` until the user approves the full summary.
+
+### 5. Apply confirmed changes
+
+For each item the user confirmed in step 4:
 
 **Adding an MCP server:**
 
@@ -94,7 +136,7 @@ For each item the user confirms:
 2. Place the new agent file in `.github/agents/`
 3. Add it to `copilot-instructions.md` agent routing table
 
-### 5. Record decisions
+### 6. Record decisions
 
 Call `record_team_setup(project_id, summary, ...)` with:
 
@@ -106,7 +148,7 @@ Call `record_team_setup(project_id, summary, ...)` with:
 
 Also write a concise summary to `/memories/repo/team-setup.md` using `vscode/memory` so other agents can quickly discover what was configured.
 
-### 6. Hand off
+### 7. Hand off
 
 Tell the user what was configured and what they need to do (e.g. restart MCP server, install skills). Then offer the **Define Features** handoff to the Product Manager.
 

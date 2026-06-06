@@ -28,7 +28,44 @@ Call `list_projects` to find the project, then `read_pending_tasks` for each age
 
 **If all queues are empty**, the step-3 task has not been seeded yet. This is normal when the Project Initiation Manager completed a conversational brief but did not call `finalise_brief`. Do not ask the user — call `finalise_brief(project_id)` directly to seed the step-3 task, then continue.
 
-### 2. Work the queue step by step
+### 2. Pre-pipeline approval gate (after step 4 completes, before step 5)
+
+After the PM Reviewer approves the feature set (step 4 done), **pause and print a pre-pipeline summary to chat before starting any step-5 tasks.** This gives the user a chance to review everything before build work begins.
+
+Print the following:
+
+---
+**Pre-pipeline summary — [Project Name]**
+
+**Brief:** [one-sentence description of what is being built]
+
+**Features approved ([N] total):**
+| # | Feature | Priority | Phase |
+|---|---------|----------|-------|
+| … | … | … | … |
+
+**Agent team configuration:**
+- MCP servers added: [list or "none recorded"]
+- Skills added: [list or "none recorded"]
+- Agent changes: [list or "none recorded"]
+(Read `team_setup` from the task context if available; show "Dev Manager was not run" if absent.)
+
+**Ready to begin Step 5 (write test specs) for [N] features.**
+
+---
+
+Then use `vscode/askQuestions`:
+```
+header: "Pre-pipeline approval"
+question: "Does the feature list and team setup look correct? Approve to start building, or request changes."
+options: ["Approve — start building", "I want to make changes first"]
+```
+
+If the user requests changes, stop and tell them which agent to invoke (Project Initiation Manager for brief changes, Dev Manager for team setup). Do not continue until the user invokes you again after making changes.
+
+### 3. Work the queue — one feature at a time
+
+Work the pipeline **one feature at a time**. Complete all steps for a single feature (5 → 6 → 7 → 8 → 9) before picking up the next feature's step-5 task. This ensures a feature reaches a shippable state before the next one begins, and allows clean resumption if the session is interrupted.
 
 For each pending task, invoke the matching subagent with a clear instruction including the task ID. Wait for the subagent to complete before moving on.
 
@@ -46,9 +83,13 @@ For each pending task, invoke the matching subagent with a clear instruction inc
 | 12 | TaskFlow Product Manager |
 | 13 | TaskFlow PM Reviewer |
 
-After each subagent returns, re-read `read_pending_tasks` to confirm the task advanced. If the task did not advance (still `pending` or `in_progress`), note the issue and proceed to retry logic.
+After each subagent returns, print a one-line status update to chat:
 
-### 3. Handle rejections and retries
+> ✓ Step [N] ([step name]) — [Feature name] — [done / rejected / blocked]
+
+Then re-read `read_pending_tasks` to confirm the task advanced. If the task did not advance (still `pending` or `in_progress`), note the issue and proceed to retry logic.
+
+### 4. Handle rejections and retries
 
 When a task is rejected (`rejected` status):
 
@@ -56,7 +97,7 @@ When a task is rejected (`rejected` status):
 2. Invoke the same agent again, prefacing the instruction with: *"Your previous submission was rejected. Rejection notes: [notes]. Please address these and resubmit."*
 3. Track the retry count. If the DB `retry_count` reaches 3, the task becomes `blocked` — escalate to the user (see Escalation below).
 
-### 4. Check retro recommendations for tooling gaps (step 9 → 10)
+### 5. Check retro recommendations for tooling gaps (step 9 → 10)
 
 After the Documenter completes step 9, read the task context and inspect the retro recommendations. If any recommendation explicitly mentions:
 
@@ -70,7 +111,7 @@ Then invoke the **TaskFlow Dev Manager** before proceeding to step 10:
 
 After the Dev Manager responds, continue to step 10 (Product Manager decisions).
 
-### 5. Escalate to the user when genuinely blocked
+### 6. Escalate to the user when genuinely blocked
 
 Use `vscode/askQuestions` to escalate. Do not loop indefinitely. Escalate when:
 
@@ -93,7 +134,7 @@ options:
 
 Then act on the user's choice without asking again.
 
-### 6. Cycle completion and continuation
+### 7. Cycle completion and continuation
 
 After step 13, call `read_pending_tasks('product_manager')` again. If new step-3 tasks exist (spawned by step 13), begin the next cycle immediately. If the backlog is empty and no tasks are pending, report completion to the user.
 

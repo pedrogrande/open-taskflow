@@ -14,32 +14,32 @@ Clone this repo into any project. VS Code and Claude Code both wire up the MCP s
 
 ### About TaskFlow
 
-[Task-Driven Architecture](#task-driven-architecture)
-[Review Gates](#review-gates)
-[Agents, Roles, and Tools](#agents-roles-and-tools)
-[Other Key Features](#other-key-features)
-[Why TaskFlow?](#why-taskflow)
+- [Task-Driven Architecture](#task-driven-architecture)
+- [Review Gates](#review-gates)
+- [Agents, Roles, and Tools](#agents-roles-and-tools)
+- [Other Key Features](#other-key-features)
+- [Why TaskFlow?](#why-taskflow)
 
 ### Setup
 
-[Prerequisites](#prerequisites)
-[Setup for VS Code](#setup-for-vs-code)
-[Setup for Claude Code](#setup-for-claude-code)
+- [Prerequisites](#prerequisites)
+- [Setup for VS Code](#setup-for-vs-code)
+- [Setup for Claude Code](#setup-for-claude-code)
 
 ### Usage
 
-[Using TaskFlow](#using-taskflow)
-[The 13-step pipeline](#the-13-step-pipeline)
-[Agents](#agents)
-[Slash commands](#slash-commands)
-[Project brief form](#project-brief-form-whats-captured)
+- [Using TaskFlow](#using-taskflow)
+- [The 13-step pipeline](#the-13-step-pipeline)
+- [Agents](#agents)
+- [Slash commands](#slash-commands)
+- [Project brief form](#project-brief-form-whats-captured)
 
 ### Reference info
 
-[Pipeline diagram](#pipeline-diagram)
-[Project layout](#project-layout)
-[Schema reference](#schema-reference)
-[Unblocking a stuck task](#unblocking-a-stuck-task)
+- [Pipeline diagram](#pipeline-diagram)
+- [Project layout](#project-layout)
+- [Schema reference](#schema-reference)
+- [Unblocking a stuck task](#unblocking-a-stuck-task)
 
 ---
 

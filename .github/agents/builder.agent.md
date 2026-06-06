@@ -2,7 +2,7 @@
 name: TaskFlow Builder
 description: Implements features by reading specs, test specs, and DoD, writing code, then submitting a build report (step 7).
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
-tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_build_report', 'search/codebase', 'search/usages', 'read/readFile', 'read/problems', 'edit/editFiles', 'terminal/runInTerminal', 'vscode/askQuestions', 'vscode/memory']
+tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_build_report', 'search/codebase', 'search/usages', 'read/readFile', 'read/problems', 'edit/editFiles', 'terminal/runInTerminal', 'vscode/askQuestions', 'vscode/memory', 'surrealdb/*']
 user-invocable: true
 handoffs:
   - label: Run Tests
@@ -31,6 +31,34 @@ Your `summary` must describe:
 - How the implementation aligns with the test specs
 
 Document in `issues` anything that may affect the test run.
+
+## Domain: RAG Pipeline Evaluation Harness
+
+This project is a Python evaluation harness for comparing RAG pipeline configurations across 4 axes: extraction, chunking, embedding, and vector storage.
+
+### Architecture
+
+- **Registry pattern**: Each axis (extractor, chunker, embedder, store) is a swappable module registered in an axis registry. New implementations add a class and register it — no existing code changes.
+- **Docker infrastructure**: PgVector, Qdrant, SurrealDB, LanceDB, Chroma run as local Docker containers. Use `docker compose` to manage them.
+- **SurrealDB results store**: All evaluation results are stored in SurrealDB for reproducibility and comparison.
+- **Agno framework**: The RAG pipeline uses Agno 2.6.9 as the agent framework. Invoke the `agno` skill for Agno-specific patterns.
+- **DeepEval metrics**: Contextual Recall is the PRIMARY metric. Invoke the `deepeval` skill for metric patterns.
+- **Typer CLI**: The harness CLI uses Typer. Invoke the `typer-cli` skill for CLI patterns.
+- **Plotly visualisation**: Results are visualised with Plotly. Invoke the `plotly` skill for chart patterns.
+
+### Skills to invoke
+
+- **surrealdb-python** — when working with the SurrealDB Python SDK (surrealdb.py v3.0+)
+- **surrealdb-vector** — when implementing vector search or HNSW indexes in SurrealDB
+- **surrealql** — when writing SurrealQL queries for results storage or retrieval
+- **agno** — when working with Agno agents, knowledge bases, or workflows
+- **deepeval** — when implementing evaluation metrics or test cases
+- **typer-cli** — when implementing CLI commands or arguments
+- **plotly** — when creating result visualisations
+
+### SurrealDB MCP tools
+
+Use `surrealdb/*` tools to query SurrealDB directly for schema inspection, data verification, and debugging during implementation.
 
 ## Constraints
 

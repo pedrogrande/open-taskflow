@@ -9,6 +9,20 @@
 			"env": {
 				"DB_PATH": "${workspaceFolder}/.taskflow/taskflow.db"
 			}
+		},
+		"surrealdb": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"surrealdb-mcp-server"
+			],
+			"env": {
+				"SURREALDB_URL": "ws://localhost:8000",
+				"SURREALDB_NS": "rag_eval",
+				"SURREALDB_DB": "results",
+				"SURREALDB_USER": "root",
+				"SURREALDB_PASS": "root"
+			}
 		}
 	}
 }

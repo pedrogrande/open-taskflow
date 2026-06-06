@@ -1,60 +1,92 @@
 # TaskFlow
 
-A VS Code agent plugin that implements a **database-driven agentic pipeline** for software development. Every agent action is authorised and scoped by a task record. The database is the single source of truth for pipeline state, permissions, and context.
+A **database-driven agentic pipeline** for software development. Clone this repo into any project and VS Code automatically wires up the MCP server, agents, and skills. Every agent action is authorised and scoped by a task record. The database is the single source of truth for pipeline state, permissions, and context.
 
 ---
 
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) — `brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- VS Code with GitHub Copilot (agent mode)
+- VS Code 1.99+ with GitHub Copilot (agent mode enabled)
 
 ---
 
-## Installation
+## Setup
 
-Add to your VS Code `settings.json`:
+### 1. Clone into your project
 
-```json
-"chat.pluginLocations": [
-  "/path/to/taskflow"
-]
+If you are starting a new project from scratch:
+
+```bash
+git clone https://github.com/pedrogrande/open-taskflow.git my-project
+cd my-project
 ```
 
-Or install from GitHub by adding the repo URL to `chat.pluginLocations`.
+If you want to add TaskFlow to an **existing** project, copy the following directories and files into your workspace root:
 
-On first use, `uv` will automatically install the `mcp` dependency. No manual `pip install` required.
+```
+.github/
+.taskflow/
+.vscode/mcp.json
+.vscode/settings.json
+.vscode/hooks.json   # merge with your existing hooks if you have one
+.gitignore           # add the .taskflow/ entries to your existing .gitignore
+```
+
+### 2. Open the workspace in VS Code
+
+VS Code detects `.vscode/mcp.json` and starts the TaskFlow MCP server automatically via `uv`. On first run, `uv` downloads the `mcp` dependency — no manual `pip install` required.
+
+You should see **taskflow** appear in **Configure Tools** (gear icon in the Chat view).
+
+### 3. Add `.taskflow/` to your project's `.gitignore`
+
+The database and audit log are runtime files and should not be committed:
+
+```
+.taskflow/taskflow.db
+.taskflow/audit.log
+.taskflow/server/__pycache__/
+```
+
+These are already in the `.gitignore` included with this repo. If you merged TaskFlow into an existing project, add these lines to your own `.gitignore`.
 
 ---
 
 ## Quick start
 
-There are two ways to kick off a project. Use **Path A** when a client has filled in the brief form; use **Path B** for quick or informal starts.
+There are two ways to initiate a project. Use **Path A** for a thorough brief; use **Path B** conversationally.
 
 ### Path A — Project brief form (recommended)
 
-1. Open `docs/project-brief-form.html` in any browser (no server needed — it runs offline).
+1. Open `.taskflow/project-brief-form.html` in any browser — it runs fully offline, no server needed.
 2. Complete all sections: identity, goals, features, workflows, NFRs, integrations, risks, timeline.
-3. Click **Generate brief** — a `project-brief-<name>.json` file downloads to your machine.
-4. In VS Code Copilot chat, invoke the **TaskFlow Product Manager** agent and run:
+3. Click **Generate brief** — a `project-brief-<name>.json` file downloads.
+4. In VS Code Copilot chat, invoke the **TaskFlow Project Initiation Manager**:
 
    ```
-   @TaskFlow Product Manager use ingest_brief to start this project
+   @TaskFlow Project Initiation Manager
    ```
 
-   Paste the contents of the JSON file (or provide the file path). The agent calls `ingest_brief`, which parses all structured data into the database and seeds the first pipeline task.
+   Tell it you have a brief JSON file and provide the path or paste the contents. The agent calls `ingest_brief`, which parses all structured data into the database and seeds the first pipeline task.
 5. Proceed to [Working the pipeline](#working-the-pipeline).
 
-### Path B — Free-text brief
+### Path B — Conversational brief
 
-1. Open a project workspace in VS Code.
-2. Type `/start-project` in Copilot chat and follow the prompts — paste a brief as plain text or provide a file path.
+1. Open your project workspace in VS Code.
+2. Invoke the **TaskFlow Project Initiation Manager** in chat:
+
+   ```
+   @TaskFlow Project Initiation Manager I want to start a new project
+   ```
+
+   The agent guides you through the brief one question at a time, recording each answer directly into the database, then hands off to the Product Manager when the brief is complete.
 3. Proceed to [Working the pipeline](#working-the-pipeline).
 
 ### Working the pipeline
 
 1. Use `/my-tasks` to see what each agent needs to do next.
-2. Invoke the appropriate agent (e.g. **TaskFlow Product Manager**) to work the next task.
+2. Invoke the appropriate agent (e.g. **@TaskFlow Product Manager**) to work the next task.
 3. Use `/pipeline-status` at any time to see the full pipeline state.
 
 ---
@@ -75,6 +107,7 @@ For the form-based path, use `ingest_brief` directly via the **TaskFlow Product 
 
 | Agent | Role in pipeline |
 |---|---|
+| **TaskFlow Project Initiation Manager** | Builds the project brief conversationally or ingests a brief form JSON (pre-pipeline) |
 | **TaskFlow Product Manager** | Defines features, decisions, and decision artefacts (steps 3, 10, 12) |
 | **TaskFlow PM Reviewer** | Reviews and approves PM outputs (steps 2, 4, 11, 13) |
 | **TaskFlow Tester** | Writes test specs and runs tests (steps 5, 8) |
@@ -86,7 +119,7 @@ For the form-based path, use `ingest_brief` directly via the **TaskFlow Product 
 
 ## Project brief form
 
-The brief form (`docs/project-brief-form.html`) is a single offline HTML file — no install, no server, no dependencies.
+The brief form (`.taskflow/project-brief-form.html`) is a single offline HTML file — no install, no server, no dependencies.
 
 **Sections captured:**
 
@@ -115,9 +148,9 @@ The brief form (`docs/project-brief-form.html`) is a single offline HTML file �
 ## Pipeline overview
 
 ```
-docs/project-brief-form.html  →  project-brief.json  →  ingest_brief
+.taskflow/project-brief-form.html  →  project-brief.json  →  ingest_brief
           OR
-/start-project (free-text)
+@TaskFlow Project Initiation Manager (conversational)
       │
       ▼
   Step 3: PM defines features + DoD
@@ -184,35 +217,28 @@ All brief-derived tables are returned by `read_task_context` via the `brief` key
 
 ---
 
-## Running tests
-
-```bash
-cd taskflow
-uv run --with mcp pytest tests/ -v
-```
-
----
-
 ## Project layout
 
 ```
-taskflow/
-  .claude-plugin/plugin.json   # Plugin manifest
-  .mcp.json                    # MCP server definition
-  docs/
-    project-brief-form.html    # Offline brief form → downloads project-brief.json
-    project-brief-template.md  # Reference template
-  db/
-    init.sql                   # Schema + pipeline seed data
-    taskflow.db                # Runtime DB (gitignored)
-    audit.log                  # Tool call audit trail (gitignored)
-  servers/
-    mcp_server.py              # FastMCP server (all tools incl. ingest_brief)
-  agents/                      # 6 agent files
-  skills/                      # 9 skill directories
-  copilot-instructions.md      # Agent routing + tool reference
-  hooks.json                   # SessionStart + PostToolUse hooks
-  tests/                       # Test suite
+open-taskflow/
+  .github/
+    agents/                          # 7 agent definition files
+    skills/                          # 10 skill directories
+    copilot-instructions.md          # Agent routing + tool reference
+  .taskflow/
+    server/
+      mcp_server.py                  # FastMCP server (all tools)
+      init.sql                       # Schema + pipeline seed data
+    project-brief-form.html          # Offline brief form → downloads project-brief.json
+    project-brief-template.md        # Reference template
+    taskflow.db                      # Runtime DB (gitignored — auto-created on first use)
+    audit.log                        # Tool call audit trail (gitignored)
+  .vscode/
+    mcp.json                         # Workspace MCP server definition
+    settings.json                    # Skills + hooks locations
+    hooks.json                       # SessionStart + PostToolUse hooks
+  .gitignore
+  README.md
 ```
 
 ---

@@ -26,12 +26,14 @@ You are the **TaskFlow Builder** agent. You implement features and produce a bui
 
 ---
 **Builder summary — [Feature name]**
+
 - **Step:** 7 (Build)
 - **Task ID:** [task_id]
 - **What was built:** [one sentence]
 - **DoD criteria met:** [N of N]
 - **Issues to note:** [any issues, or "none"]
 - **Next:** Tester to run tests (step 8)
+
 ---
 
 ## Build report quality

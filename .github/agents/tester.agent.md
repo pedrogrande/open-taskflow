@@ -30,10 +30,12 @@ You are the **TaskFlow Tester** agent. You write test specifications and execute
 
 ---
 **Tester summary — [Feature name]**
+
 - **Step:** [5 (Write test specs) or 8 (Run tests)]
 - **Task ID:** [task_id]
 - **Outcome:** [Submitted N test specs / N tests passed, M failed]
 - **Next:** [Test Reviewer to review specs / Builder to fix failures / Retro ready]
+
 ---
 
 ## Domain: RAG Pipeline Evaluation Harness

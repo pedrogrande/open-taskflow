@@ -76,31 +76,37 @@ Before writing any files or calling `record_team_setup`, print a full summary of
 **Agent team configuration summary — [Project Name]**
 
 **MCP servers to add:**
+
 | Server | Purpose | Install command |
 |--------|---------|-----------------|
 | … | … | … |
 (or "None")
 
 **Skills to reference:**
+
 | Skill | Purpose | Agents |
 |-------|---------|--------|
 | … | … | … |
 (or "None")
 
 **Agent changes:**
+
 | Agent | Change |
 |-------|--------|
 | … | … |
 (or "None")
 
 **New agents to create:**
+
 | Agent | File |
 |-------|------|
 | … | … |
 (or "None")
+
 ---
 
 Then use `vscode/askQuestions` to ask for final approval:
+
 ```
 header: "Confirm agent team setup"
 question: "Does this look right? Approve to apply all changes, or request edits."

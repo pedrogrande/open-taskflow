@@ -40,11 +40,13 @@ Print the following:
 **Brief:** [one-sentence description of what is being built]
 
 **Features approved ([N] total):**
+
 | # | Feature | Priority | Phase |
 |---|---------|----------|-------|
 | … | … | … | … |
 
 **Agent team configuration:**
+
 - MCP servers added: [list or "none recorded"]
 - Skills added: [list or "none recorded"]
 - Agent changes: [list or "none recorded"]
@@ -55,6 +57,7 @@ Print the following:
 ---
 
 Then use `vscode/askQuestions`:
+
 ```
 header: "Pre-pipeline approval"
 question: "Does the feature list and team setup look correct? Approve to start building, or request changes."

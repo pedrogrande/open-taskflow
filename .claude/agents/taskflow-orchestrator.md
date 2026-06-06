@@ -92,9 +92,18 @@ When a task is rejected (`rejected` status):
 2. Invoke the same subagent again, prefacing the instruction with: *"Your previous submission was rejected. Rejection notes: [notes]. Please address these and resubmit."*
 3. Track the retry count. If the DB `retry_count` reaches 3, the task becomes `blocked` — escalate to the user.
 
-### 5. Check retro recommendations for tooling gaps (step 9 → 10)
+### 5. Retro review by Dev Manager (step 9 → 10)
 
-After the Documenter completes step 9, inspect the retro recommendations. If any recommendation explicitly mentions a missing tool, MCP server, skill, or agent gap, invoke **taskflow-dev-manager** before proceeding to step 10.
+After the Documenter completes step 9, **always invoke taskflow-dev-manager** before proceeding to step 10. Pass the full list of retro recommendations:
+
+> "Step 9 retro for feature [name] is complete. Recommendations: [list each recommendation type and summary]. Please review for any agent tooling gaps, model configuration improvements, or workflow patterns worth capturing, then confirm whether any changes are needed before we proceed to step 10."
+
+The Dev Manager will:
+- Review all recommendations for agent improvement signals (not just explicit tooling mentions)
+- Apply any confirmed changes to agent files
+- Reply with a brief summary of what was changed or "no changes needed"
+
+After the Dev Manager responds, continue to step 10 (Product Manager decisions).
 
 ### 6. Escalate to the user when genuinely blocked
 

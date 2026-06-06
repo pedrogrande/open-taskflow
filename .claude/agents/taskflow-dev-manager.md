@@ -219,6 +219,35 @@ After calling `record_team_setup`, print a brief summary:
 
 ---
 
+## Retro review mode (invoked after step 9)
+
+When invoked by the Orchestrator mid-pipeline with a retro summary, switch to **retro review mode** instead of the initial setup workflow above.
+
+### What to look for
+
+Read the recommendations passed by the Orchestrator and scan for any of these signals, even if they are not phrased as tooling requests:
+
+| Signal | Example | Possible action |
+|--------|---------|----------------|
+| A step was slow or expensive | "embedding took too long" | Upgrade model for Tester/Builder, or add a faster MCP tool |
+| An agent lacked context | "builder didn't know about the schema" | Add an MCP server or skill to Builder's tool list |
+| A repeated manual step | "had to check docs every build" | Add a relevant MCP server or create a skill |
+| A pattern that could be reused | "same DB setup across every feature" | Create a new skill or a reusable prompt |
+| A new specialist role is emerging | "needed a dedicated migration agent" | Propose a new agent |
+| A model was inadequate | "Haiku struggled with the test spec logic" | Upgrade that agent's model tier |
+| An agent was overcapable for its task | "Sonnet on the retro is overkill" | Downgrade that agent's model to reduce cost |
+
+### Decision process
+
+1. List every signal you found, with the specific recommendation text quoted.
+2. For each signal, state your proposed action (or "no action — signal is too vague to act on").
+3. Ask the user: *"Should I apply any of these changes? You can approve all, pick individual items, or skip."*
+4. Apply only what the user approves, using the same file-editing steps as initial setup (section 5 above). Edit both `.claude/agents/` and `.github/agents/` files when changing agent specs.
+5. If model changes are involved, use the inline array format: `model: [Claude Sonnet 4.6, Claude Haiku 4.5]`
+6. If no actionable signals were found, reply: *"Retro reviewed — no agent configuration changes needed."* and hand back to the Orchestrator.
+
+Do **not** call `record_team_setup` for retro-triggered changes — just edit the files and report what changed.
+
 ## Constraints
 
 - Do not write files or call `record_team_setup` until the user has approved the full summary.

@@ -6,7 +6,7 @@ TaskFlow gives your AI agents a shared memory, a defined process, and clear role
 
 Clone this repo into any project. VS Code and Claude Code both wire up the MCP server, agents, and skills automatically. The SQLite database is the single source of truth: it records every decision, tracks every task, and gives each agent exactly the context it needs, nothing more.
 
-![TaskFlow agents](./.taskflow/images/agents.jpg)
+![TaskFlow project brief form](./.taskflow/images/project-brief-form.jpg)
 
 ---
 

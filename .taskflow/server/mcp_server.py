@@ -591,6 +591,7 @@ def _spawn_tasks(
 _PROJECT_SCALAR_FIELDS = {
     "name",
     "brief_text",
+    "brief_path",
     "organisation",
     "industry",
     "problem",
@@ -661,9 +662,9 @@ def update_project_field(project_id: int, field: str, value: str) -> dict[str, A
 
     Args:
         project_id: The project to update.
-        field:      Column name. Must be one of: name, brief_text, organisation,
-                    industry, problem, success_definition, out_of_scope,
-                    decision_maker_name, decision_maker_contact,
+        field:      Column name. Must be one of: name, brief_text, brief_path,
+                    organisation, industry, problem, success_definition,
+                    out_of_scope, decision_maker_name, decision_maker_contact,
                     acceptance_testers, hosting, design_source, design_references,
                     brand, maintenance, deadline_date, deadline_type,
                     deadline_reason, platforms.

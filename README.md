@@ -8,6 +8,10 @@ Clone this repo into any project. VS Code and Claude Code both wire up the MCP s
 
 ![TaskFlow project brief form](./.taskflow/images/project-brief-form.jpg)
 
+This (optional) Project brief builder makes it easy to specify what you want to build. When you submit, it produces a JSON file that is quickly ingested into the system for project setup.
+
+Just open `.taskflow/project-brief-form.html` in your browser - no server needed.
+
 ---
 
 ## Contents

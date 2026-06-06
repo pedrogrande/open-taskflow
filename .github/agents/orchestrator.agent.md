@@ -108,6 +108,7 @@ After the Documenter completes step 9, **always invoke the TaskFlow Dev Manager*
 > "Step 9 retro for feature [name] is complete. Recommendations: [list each recommendation type and summary]. Please review for any agent tooling gaps, model configuration improvements, or workflow patterns worth capturing, then confirm whether any changes are needed before we proceed to step 10."
 
 The Dev Manager will:
+
 - Review all recommendations for agent improvement signals (not just explicit tooling mentions)
 - Apply any confirmed changes to agent files
 - Reply with a brief summary of what was changed or "no changes needed"

@@ -2,6 +2,12 @@
 
 TaskFlow is a database-driven agentic pipeline for software development. Every agent action is authorised and scoped by a task record in a SQLite database. The database is the single source of truth for pipeline state, permissions, and context.
 
+## Workspace layout (always true)
+
+- **MCP server:** `.taskflow/server/mcp_server.py` — started automatically by VS Code via `.vscode/mcp.json`
+- **Database:** `.taskflow/taskflow.db` — created automatically on first MCP tool call; never query it directly
+- **All pipeline data is accessed exclusively through MCP tools.** Do not read or write the SQLite file directly.
+
 ---
 
 ## Core rules

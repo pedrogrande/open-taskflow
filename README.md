@@ -29,6 +29,9 @@ Clone this repo into any project. VS Code and Claude Code both wire up the MCP s
 ### Usage
 
 - [Using TaskFlow](#using-taskflow)
+  - [1. Initiate: build the project brief](#1-initiate-build-the-project-brief)
+  - [2. Configure: set up the agent team](#2-configure-set-up-the-agent-team-recommended)
+  - [3. Run: the pipeline](#3-run-the-pipeline)
 - [The 13-step pipeline](#the-13-step-pipeline)
 - [Agents](#agents)
 - [Slash commands](#slash-commands)
@@ -221,7 +224,7 @@ The Orchestrator invokes each specialist agent in order, re-reads pipeline state
 
 However, if you would like to use it manually to begin with, you can follow these steps.
 
-### [Step 1] Initiate: build the project brief
+### 1. Initiate: build the project brief
 
 The project brief is the foundation. All agents draw context from it throughout the pipeline. There are two ways to create one.
 
@@ -253,7 +256,7 @@ The skill asks whether you have a brief file or want to enter text directly. The
 
 ---
 
-### [Step 2] Configure: set up the agent team (recommended)
+### 2. Configure: set up the agent team (recommended)
 
 Once the brief is ingested, use the slash command:
 
@@ -269,7 +272,7 @@ Skip this phase if your project has no specific integrations or if you want to s
 
 ---
 
-### [Step 3] Run: the pipeline
+### 3. Run: the pipeline
 
 Start the full pipeline with the slash command:
 

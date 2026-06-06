@@ -318,3 +318,19 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at      TEXT NOT NULL DEFAULT (datetime('now', 'utc')),
     completed_at    TEXT
 );
+
+-- ---------------------------------------------------------------------------
+-- Dev Manager team setup record (one per project, upsertable)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS team_setup (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id          INTEGER NOT NULL UNIQUE REFERENCES projects(id),
+    summary             TEXT NOT NULL,
+    mcp_servers_added   TEXT,  -- JSON array of {name, purpose}
+    skills_added        TEXT,  -- JSON array of {name, purpose, agents}
+    agents_modified     TEXT,  -- JSON array of {name, change}
+    agents_created      TEXT,  -- JSON array of {name, file}
+    created_at          TEXT NOT NULL DEFAULT (datetime('now', 'utc')),
+    updated_at          TEXT NOT NULL DEFAULT (datetime('now', 'utc'))
+);

@@ -17,6 +17,8 @@ TaskFlow is a database-driven agentic pipeline for software development. Every a
 
 | Agent | Invoke when... |
 |---|---|
+| **TaskFlow Project Initiation Manager** | Building or ingesting a project brief (pre-pipeline) |
+| **TaskFlow Dev Manager** | Configuring the agent team after the brief is complete (pre-pipeline) |
 | **TaskFlow Product Manager** | Step 3 (define features), step 10 (decisions), step 12 (decision artefacts) |
 | **TaskFlow PM Reviewer** | Step 2 (review project), step 4 (review features), step 11 (review decisions), step 13 (final verification) |
 | **TaskFlow Tester** | Step 5 (write test specs), step 8 (run tests) |

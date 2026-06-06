@@ -2,7 +2,7 @@
 name: TaskFlow Builder
 description: Implements features by reading specs, test specs, and DoD, writing code, then submitting a build report (step 7).
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
-tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_build_report', 'search/codebase', 'search/usages', 'read/readFile', 'read/problems', 'edit/editFiles', 'terminal/runInTerminal']
+tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_build_report', 'search/codebase', 'search/usages', 'read/readFile', 'read/problems', 'edit/editFiles', 'terminal/runInTerminal', '#vscode/askQuestions', '#vscode/memory']
 user-invocable: true
 handoffs:
   - label: Run Tests
@@ -39,3 +39,4 @@ Document in `issues` anything that may affect the test run.
 - If `rejection_notes` is present on your task, the previous build had issues. Read them before starting.
 - Submit the build report only when the implementation is complete enough to be tested.
 - Do not write or modify test files — that is the tester's responsibility.
+- If you face a genuine implementation ambiguity not resolved by the DoD, decision artefacts, or `team_setup`, use `#vscode/askQuestions` to ask the user. See the `agent-ux` skill. Keep questions concise.

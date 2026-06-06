@@ -2,7 +2,7 @@
 name: TaskFlow Documenter
 description: Writes the retrospective report and recommendations after tests pass (step 9). Produces DB records only — no file access.
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
-tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_retro']
+tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_retro', '#vscode/askQuestions', '#vscode/memory']
 user-invocable: true
 handoffs:
   - label: Write Decisions

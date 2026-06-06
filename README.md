@@ -108,6 +108,7 @@ For the form-based path, use `ingest_brief` directly via the **TaskFlow Product 
 | Agent | Role in pipeline |
 |---|---|
 | **TaskFlow Project Initiation Manager** | Builds the project brief conversationally or ingests a brief form JSON (pre-pipeline) |
+| **TaskFlow Dev Manager** | Reviews the brief, identifies relevant MCP servers and skills, enriches the agent team (pre-pipeline) |
 | **TaskFlow Product Manager** | Defines features, decisions, and decision artefacts (steps 3, 10, 12) |
 | **TaskFlow PM Reviewer** | Reviews and approves PM outputs (steps 2, 4, 11, 13) |
 | **TaskFlow Tester** | Writes test specs and runs tests (steps 5, 8) |
@@ -151,6 +152,10 @@ The brief form (`.taskflow/project-brief-form.html`) is a single offline HTML fi
 .taskflow/project-brief-form.html  →  project-brief.json  →  ingest_brief
           OR
 @TaskFlow Project Initiation Manager (conversational)
+      │
+      ▼  (recommended)
+@TaskFlow Dev Manager
+  Reads brief → researches MCP servers + skills → enriches agent team
       │
       ▼
   Step 3: PM defines features + DoD
@@ -222,8 +227,8 @@ All brief-derived tables are returned by `read_task_context` via the `brief` key
 ```
 open-taskflow/
   .github/
-    agents/                          # 7 agent definition files
-    skills/                          # 10 skill directories
+    agents/                          # 8 agent definition files
+    skills/                          # 12 skill directories
     copilot-instructions.md          # Agent routing + tool reference
   .taskflow/
     server/

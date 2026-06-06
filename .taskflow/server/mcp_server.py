@@ -537,6 +537,14 @@ def read_task_context(task_id: int) -> dict[str, Any]:
             # Step 13 is the final gate — include success metrics for verification
             ctx["brief"] = _brief_context(conn, project_id)
 
+        # Inject team_setup for any step with a project — agents need to know
+        # what MCP servers and skills the Dev Manager configured.
+        if project_id:
+            ts = conn.execute(
+                "SELECT * FROM team_setup WHERE project_id = ?", (project_id,)
+            ).fetchone()
+            ctx["team_setup"] = _row_to_dict(ts) if ts else None
+
         return ctx
 
     finally:
@@ -1379,6 +1387,85 @@ def finalise_brief(project_id: int, force: bool = False) -> dict[str, Any]:
             "step3_already_existed": step3_row is not None,
             "message": "Brief finalised. Product Manager step-3 task is ready.",
         }
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Dev Manager team setup
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def record_team_setup(
+    project_id: int,
+    summary: str,
+    mcp_servers_added: list[dict] | None = None,
+    skills_added: list[dict] | None = None,
+    agents_modified: list[dict] | None = None,
+    agents_created: list[dict] | None = None,
+) -> dict[str, Any]:
+    """Record the Dev Manager's workspace enrichment decisions for a project.
+
+    Upserts a single team_setup row per project so it can be re-run after
+    further changes. All downstream agents receive this via read_task_context.
+
+    Args:
+        project_id: The project to record setup for.
+        summary: Plain-text summary of what was configured and why.
+        mcp_servers_added: List of {name, purpose} dicts for added MCP servers.
+        skills_added: List of {name, purpose, agents} dicts for added skills.
+        agents_modified: List of {name, change} dicts for modified agent files.
+        agents_created: List of {name, file} dicts for newly created agent files.
+    """
+    conn = _get_conn()
+    try:
+        existing = conn.execute(
+            "SELECT id FROM team_setup WHERE project_id = ?", (project_id,)
+        ).fetchone()
+        now = datetime.now(timezone.utc).isoformat()
+        if existing:
+            conn.execute(
+                """
+                UPDATE team_setup
+                SET summary = ?, mcp_servers_added = ?, skills_added = ?,
+                    agents_modified = ?, agents_created = ?, updated_at = ?
+                WHERE project_id = ?
+                """,
+                (
+                    summary,
+                    json.dumps(mcp_servers_added) if mcp_servers_added else None,
+                    json.dumps(skills_added) if skills_added else None,
+                    json.dumps(agents_modified) if agents_modified else None,
+                    json.dumps(agents_created) if agents_created else None,
+                    now,
+                    project_id,
+                ),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT INTO team_setup
+                    (project_id, summary, mcp_servers_added, skills_added,
+                     agents_modified, agents_created, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    project_id,
+                    summary,
+                    json.dumps(mcp_servers_added) if mcp_servers_added else None,
+                    json.dumps(skills_added) if skills_added else None,
+                    json.dumps(agents_modified) if agents_modified else None,
+                    json.dumps(agents_created) if agents_created else None,
+                    now,
+                    now,
+                ),
+            )
+        conn.commit()
+        row = conn.execute(
+            "SELECT * FROM team_setup WHERE project_id = ?", (project_id,)
+        ).fetchone()
+        return {"team_setup": _row_to_dict(row)}
     finally:
         conn.close()
 

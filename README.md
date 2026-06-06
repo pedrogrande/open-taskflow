@@ -140,8 +140,6 @@ TaskFlow solves this by treating development like a proper process:
 - [uv](https://docs.astral.sh/uv/getting-started/installation/), `brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - VS Code 1.99+ with GitHub Copilot (agent mode enabled) **or** Claude Code
 
-> **Agent mode** is the VS Code Copilot feature that lets you @-mention specialist agents in chat. Enable it in Settings → GitHub Copilot → Chat: Agent Mode.
-
 <!-- screenshot: VS Code settings panel showing Chat Agent Mode enabled -->
 
 ---

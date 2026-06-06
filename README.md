@@ -85,9 +85,15 @@ There are two ways to initiate a project. Use **Path A** for a thorough brief; u
 
 ### Working the pipeline
 
-1. Use `/my-tasks` to see what each agent needs to do next.
-2. Invoke the appropriate agent (e.g. **@TaskFlow Product Manager**) to work the next task.
-3. Use `/pipeline-status` at any time to see the full pipeline state.
+Invoke the **TaskFlow Orchestrator** — it runs the entire pipeline autonomously:
+
+```
+@TaskFlow Orchestrator
+```
+
+The Orchestrator invokes each specialist agent in order, monitors task advancement, handles retries, and escalates to you only when a task is genuinely blocked (after 3 failed attempts) or a decision requires your input.
+
+Alternatively, invoke individual agents manually using `/my-tasks` to see what each agent needs to do next.
 
 ---
 
@@ -108,6 +114,8 @@ For the form-based path, use `ingest_brief` directly via the **TaskFlow Product 
 | Agent | Role in pipeline |
 |---|---|
 | **TaskFlow Project Initiation Manager** | Builds the project brief conversationally or ingests a brief form JSON (pre-pipeline) |
+| **TaskFlow Dev Manager** | Reviews the brief, identifies relevant MCP servers and skills, enriches the agent team (pre-pipeline) |
+| **TaskFlow Orchestrator** | Runs the full pipeline autonomously — invokes all specialist agents as subagents, handles retries, escalates when blocked |
 | **TaskFlow Product Manager** | Defines features, decisions, and decision artefacts (steps 3, 10, 12) |
 | **TaskFlow PM Reviewer** | Reviews and approves PM outputs (steps 2, 4, 11, 13) |
 | **TaskFlow Tester** | Writes test specs and runs tests (steps 5, 8) |
@@ -151,6 +159,14 @@ The brief form (`.taskflow/project-brief-form.html`) is a single offline HTML fi
 .taskflow/project-brief-form.html  →  project-brief.json  →  ingest_brief
           OR
 @TaskFlow Project Initiation Manager (conversational)
+      │
+      ▼  (recommended)
+@TaskFlow Dev Manager
+  Reads brief → researches MCP servers + skills → enriches agent team
+      │
+      ▼
+@TaskFlow Orchestrator
+  Runs steps 3–13 autonomously, invoking specialist agents as subagents
       │
       ▼
   Step 3: PM defines features + DoD
@@ -222,8 +238,8 @@ All brief-derived tables are returned by `read_task_context` via the `brief` key
 ```
 open-taskflow/
   .github/
-    agents/                          # 7 agent definition files
-    skills/                          # 10 skill directories
+    agents/                          # 9 agent definition files
+    skills/                          # 12 skill directories
     copilot-instructions.md          # Agent routing + tool reference
   .taskflow/
     server/

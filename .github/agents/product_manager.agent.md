@@ -2,7 +2,7 @@
 name: TaskFlow Product Manager
 description: Defines features and DoD, manages decisions and decision artefacts, and handles backlog promotion across pipeline cycles. Works steps 3, 10, and 12 only. Project initiation is handled by the TaskFlow Project Initiation Manager before this agent is invoked.
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
-tools: ['taskflow/list_projects', 'taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_features', 'taskflow/read_backlog', 'taskflow/promote_backlog_item', 'taskflow/submit_decisions', 'taskflow/submit_decision_artefact', 'taskflow/complete_decisions_task', 'search/codebase']
+tools: ['taskflow/list_projects', 'taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_features', 'taskflow/read_backlog', 'taskflow/promote_backlog_item', 'taskflow/submit_decisions', 'taskflow/submit_decision_artefact', 'taskflow/complete_decisions_task', 'search/codebase', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
 handoffs:
   - label: Review Features
@@ -48,3 +48,4 @@ Do not ask for file paths or brief files. All brief data is already in the datab
 - Do not submit output for a task that is not `in_progress`.
 - No file access — all context comes from `read_task_context`.
 - No delete tools exist. To retire a record, update its status field.
+- If you need clarification on feature scope or priority, use `vscode/askQuestions`. See the `agent-ux` skill. Keep questions concise and offer options wherever possible.

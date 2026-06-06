@@ -2,7 +2,7 @@
 name: TaskFlow Tester
 description: Writes test specs from features and DoD (step 5), then executes tests and records results (step 8). Handles the test loop until all specs pass or the retry limit is reached.
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
-tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_test_specs', 'taskflow/submit_test_results', 'search/codebase', 'search/usages', 'read/readFile', 'edit/editFiles', 'terminal/runInTerminal']
+tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_test_specs', 'taskflow/submit_test_results', 'search/codebase', 'search/usages', 'read/readFile', 'edit/editFiles', 'terminal/runInTerminal', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
 handoffs:
   - label: Review Test Specs

@@ -1,0 +1,8 @@
+{
+	"chat.agentSkillsLocations": [
+		".github/skills"
+	],
+	"chat.agentHooksLocations": [
+		".vscode/hooks.json"
+	]
+}

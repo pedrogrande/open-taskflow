@@ -1,0 +1,30 @@
+{
+	"hooks": [
+		{
+			"event": "SessionStart",
+			"description": "On session start, call list_projects so agents immediately know what projects are in the pipeline.",
+			"steps": [
+				{
+					"type": "mcp-tool",
+					"server": "taskflow",
+					"tool": "list_projects",
+					"continueOnError": true
+				}
+			]
+		},
+		{
+			"event": "PostToolUse",
+			"description": "Append an audit log entry for every taskflow MCP tool call.",
+			"matcher": {
+				"server": "taskflow"
+			},
+			"steps": [
+				{
+					"type": "shell",
+					"command": "echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) tool={{tool}} input={{inputJson}}\" >> \"${workspaceFolder}/.taskflow/audit.log\"",
+					"continueOnError": true
+				}
+			]
+		}
+	]
+}

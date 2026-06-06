@@ -1,0 +1,14 @@
+{
+	"servers": {
+		"taskflow": {
+			"command": "uv",
+			"args": [
+				"run",
+				"${workspaceFolder}/.taskflow/server/mcp_server.py"
+			],
+			"env": {
+				"DB_PATH": "${workspaceFolder}/.taskflow/taskflow.db"
+			}
+		}
+	}
+}

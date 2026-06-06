@@ -1,0 +1,6 @@
+# TaskFlow runtime files — never commit
+.taskflow/taskflow.db
+.taskflow/audit.log
+.taskflow/server/__pycache__/
+*.pyc
+.env

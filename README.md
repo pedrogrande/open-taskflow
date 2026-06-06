@@ -22,10 +22,10 @@ Clone this repo into any project. VS Code and Claude Code both wire up the MCP s
 
 ### Setup
 
-- [Prerequisites](#prerequisites)
-- [Setup for VS Code](#setup-for-vs-code)
-- [Setup for Claude Code](#setup-for-claude-code)
-- [Agent model assignments](#agent-model-assignments)
+- 0️⃣ [Prerequisites](#prerequisites)
+- 🆅 [Setup for VS Code](#setup-for-vs-code)
+- 🄲 [Setup for Claude Code](#setup-for-claude-code)
+- ➡️ [Agent model assignments](#agent-model-assignments)
 
 ### Usage
 
@@ -227,10 +227,28 @@ Defaults are already in the files, so it works out-of-the-box with no configurat
 
 By default, there are two tiers of agents but this is rather arbitrary so just see this as a guide, not an absolute.
 
-| Tier | Agents | Reasoning |
-|---|---|---|
-| **High** (Sonnet first, mini fallback) | Orchestrator, Builder, Dev Manager, Product Manager, Initiation Manager, Tester | Complex reasoning, code writing, or conversational quality needed |
-| **Low** (mini first, Sonnet fallback) | PM Reviewer, Test Reviewer, Documenter | Checklist/structured evaluation or templated output — no benefit from high reasoning |
+##### High tier
+
+**Models:** Sonnet first, Haiku fallback
+**Rationale:** Complex reasoning, code writing, or conversational quality needed
+**Agents:**
+
+- Orchestrator
+- Builder
+- Dev Manager
+- Product Manager
+- Initiation Manager
+- Tester
+
+##### Low tier
+
+**Models:** Haiku first, Sonnet fallback
+**Rationale:** Checklist/structured evaluation or templated output — no benefit from high reasoning
+**Agents:**
+
+- PM Reviewer
+- Test Reviewer
+- Documenter
 
 #### Dev Manager can configure models during team setup
 

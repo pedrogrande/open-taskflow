@@ -154,32 +154,36 @@ These are already in the `.gitignore` included with this repo. If you merged int
 
 TaskFlow has three phases: **Initiate**, **Configure**, and **Run**.
 
-### Phase 1, Initiate: build the project brief
+There is an orchestrator agent that manages all phases from project initiation through to completion.
+
+The Orchestrator invokes each specialist agent in order, re-reads pipeline state after each step to confirm advancement, and handles retries automatically. It escalates to you with a clear question only when a task is genuinely blocked.
+
+However, if you would like to use it manually to begin with, you can follow these steps.
+
+### [Step 1] Initiate: build the project brief
 
 The project brief is the foundation. All agents draw context from it throughout the pipeline. There are two ways to create one.
 
-#### Option A, Project brief form (recommended)
+#### Option A: Project brief form + Orchestrator (recommended)
 
 Open `.taskflow/project-brief-form.html` in any browser, it runs fully offline.
 
 <!-- screenshot: project-brief-form.html open in a browser, showing the Features section -->
 
-Complete all sections: identity, goals, features, workflows, NFRs, integrations, risks, and timeline. Click **Generate brief:** a `project-brief-<name>.json` file downloads. Then invoke the **TaskFlow Project Initiation Manager** in VS Code Copilot chat:
+Complete all sections: identity, goals, features, workflows, NFRs, integrations, risks, and timeline. Click **Generate brief:** a `project-brief-<name>.json` file downloads. Then invoke the **TaskFlow Project Initiation Manager** in VS Code Copilot chat
 
 ```
-@TaskFlow Project Initiation Manager
+Check the project brief file and kick off the project
 ```
 
 Tell it you have a brief JSON file and provide the path or paste the contents. The agent calls `ingest_brief`, which parses all structured data into the database and seeds the first pipeline task.
 
-<!-- screenshot: VS Code Copilot chat showing @TaskFlow Project Initiation Manager responding after ingest_brief completes -->
+#### Option B: Conversational brief
 
-#### Option B, Conversational brief
-
-Skip the form and let the agent interview you directly:
+Skip the form and let the agent interview you directly, select the `TaskFlow Project Initiation Manager`:
 
 ```
-@TaskFlow Project Initiation Manager I want to start a new project
+ I want to start a new project
 ```
 
 The agent guides you through the brief one question at a time, asking about your problem, users, integrations, and constraints, recording each answer to the database as you go.
@@ -188,12 +192,12 @@ The agent guides you through the brief one question at a time, asking about your
 
 ---
 
-### Phase 2, Configure: set up the agent team (recommended)
+### [Step 2] Configure: set up the agent team (recommended)
 
 Once the brief is ingested, invoke the **TaskFlow Dev Manager**:
 
 ```
-@TaskFlow Dev Manager
+Set up the dev team
 ```
 
 The Dev Manager reads your brief, extracts your tech stack and integrations, queries the [official MCP server registry](https://registry.modelcontextprotocol.io) for relevant servers, and presents recommendations:
@@ -206,19 +210,17 @@ Skip this phase if your project has no specific integrations or if you want to s
 
 ---
 
-### Phase 3, Run: work the pipeline
+### [Step 3] Run: Product Manager
 
-Invoke the **TaskFlow Orchestrator**:
+Invoke the **TaskFlow Product Manager**:
 
 ```
-@TaskFlow Orchestrator
+Define product features 
 ```
-
-The Orchestrator invokes each specialist agent in order, re-reads pipeline state after each step to confirm advancement, and handles retries automatically. It escalates to you with a clear question only when a task is genuinely blocked.
 
 <!-- screenshot: VS Code Copilot chat showing the Orchestrator reporting step completions and a pipeline summary -->
 
-Alternatively, work the pipeline manually, use `/my-tasks` to see what's pending, then invoke the appropriate agent directly.
+Use this slash command `/my-tasks` anytime to see what's pending, then invoke the appropriate agent directly.
 
 ---
 

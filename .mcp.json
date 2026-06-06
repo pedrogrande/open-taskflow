@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "taskflow": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", ".taskflow/server/mcp_server.py"],
+      "env": {
+        "DB_PATH": ".taskflow/taskflow.db"
+      }
+    }
+  }
+}

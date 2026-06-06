@@ -1,12 +1,34 @@
 # TaskFlow
 
-**A structured, database-driven development pipeline for VS Code + GitHub Copilot.**
+**A structured, database-driven development pipeline for VS Code + GitHub Copilot and Claude Code.**
 
 TaskFlow gives your AI agents a shared memory, a defined process, and clear roles. Instead of one agent doing everything in one long chat, each development activity is handled by a specialist agent, at the right step, with the right context, and only when the previous step is approved.
 
-Clone this repo into any project. VS Code wires up the MCP server, agents, and skills automatically. The SQLite database is the single source of truth: it records every decision, tracks every task, and gives each agent exactly the context it needs, nothing more.
+Clone this repo into any project. VS Code and Claude Code both wire up the MCP server, agents, and skills automatically. The SQLite database is the single source of truth: it records every decision, tracks every task, and gives each agent exactly the context it needs, nothing more.
 
 ![TaskFlow agents](./.taskflow/images/agents.jpg)
+
+## Contents
+
+### About TaskFlow 
+
+[Task-Driven Architecture](#task-driven-architecture)
+[Review Gates](#review-gates)
+[Agents, Roles, and Tools](#agents-roles-and-tools)
+[Other Key Features](#other-key-features)
+[Why TaskFlow?](#why-taskflow)
+
+### Setup
+
+[Prerequisites](#prerequisites)
+[Setup for VS Code](#setup-for-vs-code)
+[Setup for Claude Code](#setup-for-claude-code)
+
+### Usage
+
+[How it works](#how-it-works)
+
+
 
 ## Task-Driven Architecture
 
@@ -95,7 +117,7 @@ TaskFlow solves this by treating development like a proper process:
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/), `brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- VS Code 1.99+ with GitHub Copilot (agent mode enabled)
+- VS Code 1.99+ with GitHub Copilot (agent mode enabled) **or** Claude Code
 
 > **Agent mode** is the VS Code Copilot feature that lets you @-mention specialist agents in chat. Enable it in Settings → GitHub Copilot → Chat: Agent Mode.
 
@@ -103,7 +125,7 @@ TaskFlow solves this by treating development like a proper process:
 
 ---
 
-## Setup
+## Setup for VS Code
 
 ### 1. Clone into your project
 
@@ -147,6 +169,32 @@ The database and audit log are runtime files, don't commit them:
 ```
 
 These are already in the `.gitignore` included with this repo. If you merged into an existing project, add these lines manually.
+
+---
+
+## Setup for Claude Code
+
+### 1. Clone into your project
+
+Same as VS Code setup — clone the repo or copy directories into an existing project root.
+
+### 2. Open in Claude Code
+
+```bash
+claude .
+```
+
+Claude Code detects `.mcp.json` on startup and connects to the TaskFlow MCP server automatically. Confirm by running `/mcp` to list active MCP servers — you should see `taskflow` listed.
+
+### 3. Copy files to add to an existing project
+
+```
+.claude/
+.taskflow/
+.mcp.json
+CLAUDE.md
+.gitignore   # add the .taskflow/ entries to your existing .gitignore
+```
 
 ---
 
@@ -339,9 +387,13 @@ Phase 3: Run
 ```
 open-taskflow/
   .github/
-    agents/                          # 9 agent .agent.md files
-    skills/                          # Skill directories used by agents
-    copilot-instructions.md          # Agent routing + tool reference
+    agents/                          # 9 agent .agent.md files (VS Code)
+    skills/                          # Skill directories (shared)
+    copilot-instructions.md          # Agent routing + tool reference (VS Code)
+  .claude/
+    agents/                          # 9 subagent .md files (Claude Code)
+    skills -> ../.github/skills      # Symlink — same skills, both clients
+    settings.json                    # PostToolUse audit hook (Claude Code)
   .taskflow/
     server/
       mcp_server.py                  # FastMCP server (all tools)
@@ -351,9 +403,11 @@ open-taskflow/
     taskflow.db                      # Runtime DB (gitignored, auto-created)
     audit.log                        # Tool call audit trail (gitignored)
   .vscode/
-    mcp.json                         # Workspace MCP server definition
-    settings.json                    # Skills + hooks locations
-    hooks.json                       # SessionStart + PostToolUse hooks
+    mcp.json                         # Workspace MCP server definition (VS Code)
+    settings.json                    # Skills + hooks locations (VS Code)
+    hooks.json                       # SessionStart + PostToolUse hooks (VS Code)
+  .mcp.json                          # MCP server definition (Claude Code)
+  CLAUDE.md                          # Agent routing + tool reference (Claude Code)
   .gitignore
   README.md
 ```

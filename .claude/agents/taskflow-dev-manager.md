@@ -61,19 +61,19 @@ If that lists available models, present them. Otherwise, present the known commo
 |------|-----------|-------------|
 | High | `Claude Sonnet 4.6` | Complex reasoning, code writing, planning |
 | High | `Claude Opus 4.5` | Highest capability tasks |
-| Low | `Claude Haiku 4.5` | Fast, inexpensive, structured/templated work |
+| Low | `glm-5.1:cloud (ollama)` | Fast, inexpensive, structured/templated work |
 | Custom | `glm-5.1:cloud (ollama)` | Self-hosted via Ollama |
 
 **Default tier assignments (already in agent files):**
 
 | Agent | Default | Why |
 |-------|---------|-----|
-| taskflow-orchestrator | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Pipeline coordination, exception reasoning |
-| taskflow-builder | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Code writing, architecture understanding |
-| taskflow-dev-manager | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Research, tooling decisions |
-| taskflow-product-manager | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Feature definition from vague brief |
-| taskflow-initiation-manager | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Conversational quality, gap detection |
-| taskflow-tester | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Spec writing (step 5) needs strong reasoning |
+| taskflow-orchestrator | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Pipeline coordination, exception reasoning |
+| taskflow-builder | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Code writing, architecture understanding |
+| taskflow-dev-manager | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Research, tooling decisions |
+| taskflow-product-manager | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Feature definition from vague brief |
+| taskflow-initiation-manager | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Conversational quality, gap detection |
+| taskflow-tester | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Spec writing (step 5) needs strong reasoning |
 | taskflow-pm-reviewer | `[Claude Haiku 4.5, Claude Sonnet 4.6]` | Structured checklist evaluation |
 | taskflow-test-reviewer | `[Claude Haiku 4.5, Claude Sonnet 4.6]` | Checklist against DoD criteria |
 | taskflow-documenter | `[Claude Haiku 4.5, Claude Sonnet 4.6]` | Templated retro, follows skill script |
@@ -185,7 +185,7 @@ Edit each agent's YAML frontmatter in `.claude/agents/<name>.md` and `.github/ag
 
 ```yaml
 # Single model
-model: Claude Haiku 4.5
+model: glm-5.1:cloud (ollama)
 
 # Array with fallback — tried in order, first available wins
 model: [Claude Sonnet 4.6, Claude Haiku 4.5]

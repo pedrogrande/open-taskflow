@@ -2,7 +2,7 @@
 name: TaskFlow Dev Manager
 description: Reviews the completed project brief and configures the agent team for the specific tech stack. Identifies relevant MCP servers and skills, enriches existing agent configurations, creates new specialist agents when needed, and records all decisions before handing off to the Product Manager.
 argument-hint: 'Optional: project ID or name to configure, or leave blank to select from list'
-tools: ['taskflow/read_brief', 'taskflow/list_projects', 'taskflow/record_team_setup', 'read/readFile', 'edit/editFiles', 'web/fetch', 'search/fileSearch', 'vscode/askQuestions', 'vscode/memory']
+tools: ['taskflow/read_brief', 'taskflow/list_projects', 'taskflow/record_team_setup', 'read/readFile', 'edit/editFiles', 'terminal/runInTerminal', 'search/fileSearch', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
 handoffs:
   - label: Define Features
@@ -33,11 +33,21 @@ Call `list_projects` to find the project, then `read_brief(project_id)` to load 
 
 ### 2. Research available tooling
 
-For each identified system or stack component, use `web/fetch` to check:
+For each identified system or stack component, query the official MCP registry API to find relevant servers:
 
-- `https://mcp.so` — MCP server registry
-- `https://smithery.ai` — MCP server marketplace
-- `https://github.com/modelcontextprotocol/servers` — official MCP servers
+```bash
+curl -s --request GET \
+  --url 'https://registry.modelcontextprotocol.io/v0.1/servers?search=<term>&limit=10' \
+  --header 'Accept: application/json'
+```
+
+Run a separate query for each major integration or stack component identified in step 1 (e.g. `search=supabase`, `search=stripe`, `search=postgres`). The `search` parameter does a substring match on server name.
+
+Key response fields to inspect per result:
+- `server.name` — display name
+- `server.description` — what it does
+- `_meta.io.modelcontextprotocol.registry/official.status` — prefer `active` servers
+- `server.packages` — install command (npm, uvx, docker)
 
 Also check `.github/skills/` to see what skills are already present in this workspace.
 

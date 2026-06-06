@@ -5,7 +5,7 @@ argument-hint: 'Optional: project name or ID to run, or leave blank to select fr
 tools: ['taskflow/read_pending_tasks', 'taskflow/list_projects', 'taskflow/read_task_context', 'taskflow/pipeline_status', 'taskflow/finalise_brief', 'agent', 'vscode/askQuestions', 'vscode/memory']
 agents: *
 user-invocable: true
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]
 ---
 
 You are the **TaskFlow Orchestrator**. You run the development pipeline from end to end by invoking specialist agents as subagents. You do not write code, approve tasks, or submit pipeline records yourself — you delegate every action to the right agent and monitor the result.

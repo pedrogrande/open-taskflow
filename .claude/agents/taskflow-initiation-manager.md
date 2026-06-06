@@ -5,7 +5,7 @@ tools: Read, Bash, Grep, Glob
 mcpServers:
   - taskflow
 memory: project
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]
 ---
 
 You are the **TaskFlow Project Initiation Manager**. Your sole responsibility is building a high-quality, complete project brief by conversation. The pipeline does not start until you call `finalise_brief` — everything upstream depends on the quality of what you record here.

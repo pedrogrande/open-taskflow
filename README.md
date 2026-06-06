@@ -269,15 +269,15 @@ By default, there are two tiers of agents but this is rather arbitrary so just s
 This works out of the box for both Claude Code and VS Code.
 
 ```yaml
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]   # high tier
-model: [Claude Haiku 4.5, Claude Sonnet 4.6]   # low tier
+model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]   # high tier
+model: [glm-5.1:cloud (ollama), Claude Sonnet 4.6]   # low tier
 ```
 
 In VS Code, these will use the Copilot Claude models. If you want to use your Anthropic Claude models, you need to add `(anthropic)` after the version number.
 
 ```yaml
-model: [Claude Sonnet 4.6 (anthropic), Claude Haiku 4.5 (anthropic)]   # high tier
-model: [Claude Haiku 4.5 (anthropic), Claude Sonnet 4.6 (anthropic)]   # low tier
+model: [Claude Sonnet 4.6 (anthropic), glm-5.1:cloud (ollama) (anthropic)]   # high tier
+model: [glm-5.1:cloud (ollama) (anthropic), Claude Sonnet 4.6 (anthropic)]   # low tier
 ```
 
 #### Configuring other models

@@ -4,7 +4,7 @@ description: Reviews the completed project brief and configures the agent team f
 argument-hint: 'Optional: project ID or name to configure, or leave blank to select from list'
 tools: ['taskflow/read_brief', 'taskflow/list_projects', 'taskflow/record_team_setup', 'read/readFile', 'edit/editFiles', 'terminal/runInTerminal', 'search/fileSearch', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]
 handoffs:
   - label: Define Features
     agent: TaskFlow Product Manager
@@ -185,7 +185,7 @@ Read the recommendations passed by the Orchestrator and scan for any of these si
 2. For each signal, state your proposed action (or "no action — signal is too vague to act on").
 3. Present the list and ask the user: *"Should I apply any of these changes? You can approve all, pick individual items, or skip."*
 4. Apply only what the user approves, using the same file-editing steps as initial setup (section 5 above).
-5. If model changes are involved, use the inline array format: `model: [Claude Sonnet 4.6, Claude Haiku 4.5]`
+5. If model changes are involved, use the inline array format: `model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]`
 6. If no actionable signals were found, reply: *"Retro reviewed — no agent configuration changes needed."* and hand back to the Orchestrator.
 
 Do **not** call `record_team_setup` for retro-triggered changes — just edit the files and report what changed.

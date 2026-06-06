@@ -4,7 +4,7 @@ description: Writes test specs from features and DoD (step 5), then executes tes
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
 tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_test_specs', 'taskflow/submit_test_results', 'search/codebase', 'search/usages', 'read/readFile', 'edit/editFiles', 'terminal/runInTerminal', 'vscode/askQuestions', 'vscode/memory', 'surrealdb/*']
 user-invocable: true
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]
 handoffs:
   - label: Review Test Specs
     agent: TaskFlow Test Reviewer

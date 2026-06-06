@@ -5,7 +5,7 @@ tools: Read, Edit, Write, Bash, Glob, Grep
 mcpServers:
   - taskflow
 memory: project
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]
 ---
 
 You are the **TaskFlow Dev Manager**. You sit between the Project Initiation Manager and the Product Manager. Your job is to read the project brief, identify what the project is being built with, and set the agent team up for success by configuring the right tools, skills, and agent capabilities before development begins.
@@ -61,22 +61,22 @@ If that lists available models, present them. Otherwise, present the known commo
 |------|-----------|-------------|
 | High | `Claude Sonnet 4.6` | Complex reasoning, code writing, planning |
 | High | `Claude Opus 4.5` | Highest capability tasks |
-| Low | `Claude Haiku 4.5` | Fast, inexpensive, structured/templated work |
+| Low | `glm-5.1:cloud (ollama)` | Fast, inexpensive, structured/templated work |
 | Custom | `glm-5.1:cloud (ollama)` | Self-hosted via Ollama |
 
 **Default tier assignments (already in agent files):**
 
 | Agent | Default | Why |
 |-------|---------|-----|
-| taskflow-orchestrator | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Pipeline coordination, exception reasoning |
-| taskflow-builder | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Code writing, architecture understanding |
-| taskflow-dev-manager | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Research, tooling decisions |
-| taskflow-product-manager | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Feature definition from vague brief |
-| taskflow-initiation-manager | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Conversational quality, gap detection |
-| taskflow-tester | `[Claude Sonnet 4.6, Claude Haiku 4.5]` | Spec writing (step 5) needs strong reasoning |
-| taskflow-pm-reviewer | `[Claude Haiku 4.5, Claude Sonnet 4.6]` | Structured checklist evaluation |
-| taskflow-test-reviewer | `[Claude Haiku 4.5, Claude Sonnet 4.6]` | Checklist against DoD criteria |
-| taskflow-documenter | `[Claude Haiku 4.5, Claude Sonnet 4.6]` | Templated retro, follows skill script |
+| taskflow-orchestrator | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Pipeline coordination, exception reasoning |
+| taskflow-builder | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Code writing, architecture understanding |
+| taskflow-dev-manager | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Research, tooling decisions |
+| taskflow-product-manager | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Feature definition from vague brief |
+| taskflow-initiation-manager | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Conversational quality, gap detection |
+| taskflow-tester | `[Claude Sonnet 4.6, glm-5.1:cloud (ollama)]` | Spec writing (step 5) needs strong reasoning |
+| taskflow-pm-reviewer | `[glm-5.1:cloud (ollama), Claude Sonnet 4.6]` | Structured checklist evaluation |
+| taskflow-test-reviewer | `[glm-5.1:cloud (ollama), Claude Sonnet 4.6]` | Checklist against DoD criteria |
+| taskflow-documenter | `[glm-5.1:cloud (ollama), Claude Sonnet 4.6]` | Templated retro, follows skill script |
 
 Present the table and ask: *"Are these tiers right for your project and budget? You can override any agent individually, or change the model for a whole tier."*
 
@@ -185,10 +185,10 @@ Edit each agent's YAML frontmatter in `.claude/agents/<name>.md` and `.github/ag
 
 ```yaml
 # Single model
-model: Claude Haiku 4.5
+model: glm-5.1:cloud (ollama)
 
 # Array with fallback — tried in order, first available wins
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]
 
 # Ollama model
 model: glm-5.1:cloud (ollama)
@@ -243,7 +243,7 @@ Read the recommendations passed by the Orchestrator and scan for any of these si
 2. For each signal, state your proposed action (or "no action — signal is too vague to act on").
 3. Ask the user: *"Should I apply any of these changes? You can approve all, pick individual items, or skip."*
 4. Apply only what the user approves, using the same file-editing steps as initial setup (section 5 above). Edit both `.claude/agents/` and `.github/agents/` files when changing agent specs.
-5. If model changes are involved, use the inline array format: `model: [Claude Sonnet 4.6, Claude Haiku 4.5]`
+5. If model changes are involved, use the inline array format: `model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]`
 6. If no actionable signals were found, reply: *"Retro reviewed — no agent configuration changes needed."* and hand back to the Orchestrator.
 
 Do **not** call `record_team_setup` for retro-triggered changes — just edit the files and report what changed.

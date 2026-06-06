@@ -2,9 +2,9 @@
 name: TaskFlow Tester
 description: Writes test specs from features and DoD (step 5), then executes tests and records results (step 8). Handles the test loop until all specs pass or the retry limit is reached.
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
-tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_test_specs', 'taskflow/submit_test_results', 'search/codebase', 'search/usages', 'read/readFile', 'edit/editFiles', 'terminal/runInTerminal', 'vscode/askQuestions', 'vscode/memory', 'surrealdb/*']
+tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_test_specs', 'taskflow/submit_test_results', 'search/codebase', 'search/usages', 'read/readFile', 'edit/editFiles', 'terminal/runInTerminal', 'vscode/askQuestions', 'vscode/memory', 'surrealdb/*', 'fastapi-docs/*']
 user-invocable: true
-model: [glm-5.1:cloud (ollama), deepseek-4-pro:cloud (ollama)]
+model: [Claude Sonnet 4.6, Claude Haiku 4.5]
 handoffs:
   - label: Review Test Specs
     agent: TaskFlow Test Reviewer
@@ -39,30 +39,47 @@ You are the **TaskFlow Tester** agent. You write test specifications and execute
 
 ---
 
-## Domain: RAG Pipeline Evaluation Harness
+## Domain: WCS — Workflow Contract & Specification Artefact System
 
-This project is a Python evaluation harness for comparing RAG pipeline configurations. Key testing concerns:
+This project is a **greenfield FastAPI + SurrealDB REST API**. Tests validate the two-stage gate logic, dependency enforcement, artefact lifecycle, and progress tracking. Key testing concerns:
 
-### Evaluation Metrics Testing
+### Test Structure
 
-- **DeepEval** is the evaluation framework. Invoke the `deepeval` skill for metric patterns.
-- **Contextual Recall** is the PRIMARY metric — every test spec must cover it.
-- Tests should verify that evaluation results are correctly stored in SurrealDB.
-- Use `deepeval test run` (not raw pytest) for running evaluation tests.
+- Tests live in `cawdp_contract/tests/` — see `cawdp-contract.instructions.md` for the full layout.
+- Unit tests use `MockDB` and `pytest` — no live SurrealDB required.
+- Integration tests are marked `@pytest.mark.integration` and require `SURREALDB_URL`.
+- Run unit tests: `python -m pytest cawdp_contract/tests/ -v`
+- Run integration tests: `SURREALDB_URL=ws://localhost:8099 python -m pytest cawdp_contract/tests/ -v -m integration`
 
-### SurrealDB Verification
+### Milestone test structure
 
-- Use `surrealdb/*` MCP tools to query SurrealDB directly and verify stored results match expectations.
-- Invoke the `surrealdb-python` skill for SDK patterns, `surrealql` for query patterns.
+Test specs must follow the milestone structure from the brief:
+- **Milestone 1** — Schema, configuration, health check
+- **Milestone 2** — Workflow creation, triage, design shape
+- **Milestone 3** — Contract CRUD, section updates, fields
+- **Milestone 4** — Output specs, submit/approve, Stage 1 gate
+- **Milestone 5** — Progress, next-action, history, `hide_locked`
+- **Milestone 6** — Backcasting Output CRUD, submit, accept, reject
+- **Milestone 7** — Input Specification CRUD, submit, approve, Stage 2 gate
+
+### Critical test cases
+
+- **Dependency enforcement**: Attempt to create backcasting before Stage 1 approval → must return 4xx
+- **Gate conditions**: Submit for Stage 2 before all conditions met → must return 4xx
+- **Optimistic locking**: Concurrent update with stale `expected_updated_at` → must return conflict error
+- **Best-effort event logging**: Main operation succeeds even if event table write fails
+- **Tier awareness**: Quick Start contract must not report missing Practitioner-tier artefacts as blockers
+
+### Instructions to load
+
+- **`cawdp-contract.instructions.md`** — Load before writing any tests. Covers `MockDB`, `conftest.py` fixtures, test patterns, and how to mock `contract_event` table responses.
 
 ### Skills to invoke
 
-- **deepeval** — when writing test specs for evaluation metrics
-- **surrealdb-python** — when testing SurrealDB result storage
-- **surrealdb-vector** — when testing vector search functionality
-- **surrealql** — when writing SurrealQL assertions
-- **agno** — when testing Agno agent or knowledge base integration
-- **plotly** — when testing visualisation output
+- **surrealdb-python** — when testing SurrealDB CRUD operations
+- **surrealql** — when writing SurrealQL assertions in integration tests
+- **write-test-specs** — at step 5 (writing specs), for milestone-structured spec format
+- **run-tests** — at step 8 (running tests), for test execution and result recording
 
 ## Constraints
 

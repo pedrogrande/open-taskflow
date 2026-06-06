@@ -9,32 +9,6 @@
 			"env": {
 				"DB_PATH": "${workspaceFolder}/.taskflow/taskflow.db"
 			}
-		},
-		"agno-docs": {
-			"type": "http",
-			"url": "https://docs.agno.com/mcp"
-		},
-		"railway": {
-			"type": "http",
-			"url": "https://mcp.railway.com"
-		},
-		"surrealdb.py Docs": {
-			"type": "sse",
-			"url": "https://gitmcp.io/surrealdb/surrealdb.py"
-		},
-		"SurrealDB Docs": {
-			"type": "sse",
-			"url": "https://gitmcp.io/surrealdb/docs.surrealdb.com"
-		},
-		"fastapi-docs": {
-			"command": "uv",
-			"args": [
-				"run",
-				"--directory",
-				"/Users/peteargent/edgeos/fastapi-docs-mcp",
-				"python",
-				"main.py"
-			]
 		}
 	}
 }

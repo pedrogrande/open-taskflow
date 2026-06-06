@@ -2,7 +2,7 @@
 name: TaskFlow Orchestrator
 description: Runs the full development pipeline autonomously. Invokes specialist agents as subagents, monitors advancement, handles retries, and escalates to the user only when genuinely blocked. Start here after the Dev Manager has configured the team.
 argument-hint: 'Optional: project name or ID to run, or leave blank to select from list'
-tools: ['taskflow/read_pending_tasks', 'taskflow/list_projects', 'taskflow/read_task_context', 'taskflow/pipeline_status', 'agent', 'vscode/askQuestions', 'vscode/memory']
+tools: ['taskflow/read_pending_tasks', 'taskflow/list_projects', 'taskflow/read_task_context', 'taskflow/pipeline_status', 'taskflow/finalise_brief', 'agent', 'vscode/askQuestions', 'vscode/memory']
 agents: *
 user-invocable: true
 ---
@@ -26,7 +26,7 @@ Call `list_projects` to find the project, then `read_pending_tasks` for each age
 - `read_pending_tasks('builder')`
 - `read_pending_tasks('documenter')`
 
-Summarise the current pipeline state before proceeding.
+**If all queues are empty**, the step-3 task has not been seeded yet. This is normal when the Project Initiation Manager completed a conversational brief but did not call `finalise_brief`. Do not ask the user — call `finalise_brief(project_id)` directly to seed the step-3 task, then continue.
 
 ### 2. Work the queue step by step
 

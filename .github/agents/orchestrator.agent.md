@@ -3,7 +3,7 @@ name: TaskFlow Orchestrator
 description: Runs the full development pipeline autonomously. Invokes specialist agents as subagents, monitors advancement, handles retries, and escalates to the user only when genuinely blocked. Start here after the Dev Manager has configured the team.
 argument-hint: 'Optional: project name or ID to run, or leave blank to select from list'
 tools: ['taskflow/read_pending_tasks', 'taskflow/list_projects', 'taskflow/read_task_context', 'taskflow/pipeline_status', 'agent', 'vscode/askQuestions', 'vscode/memory']
-agents: ['TaskFlow Project Initiation Manager', 'TaskFlow Dev Manager', 'TaskFlow Product Manager', 'TaskFlow PM Reviewer', 'TaskFlow Tester', 'TaskFlow Test Reviewer', 'TaskFlow Builder', 'TaskFlow Documenter']
+agents: *
 user-invocable: true
 ---
 

@@ -230,7 +230,9 @@ By default, there are two tiers of agents but this is rather arbitrary so just s
 ##### High tier
 
 **Models:** Sonnet first, Haiku fallback
+
 **Rationale:** Complex reasoning, code writing, or conversational quality needed
+
 **Agents:**
 
 - Orchestrator
@@ -243,7 +245,9 @@ By default, there are two tiers of agents but this is rather arbitrary so just s
 ##### Low tier
 
 **Models:** Haiku first, Sonnet fallback
+
 **Rationale:** Checklist/structured evaluation or templated output — no benefit from high reasoning
+
 **Agents:**
 
 - PM Reviewer

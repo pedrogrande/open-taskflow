@@ -1,4 +1,6 @@
 {
+	"chat.agentSkillsLocations": [".github/skills"],
+	"chat.agentHooksLocations": [".vscode/hooks.json"],
 	"workbench.colorCustomizations": {
 		"activityBar.activeBackground": "#aad6af",
 		"activityBar.background": "#aad6af",

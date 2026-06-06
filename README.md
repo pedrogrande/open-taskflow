@@ -164,29 +164,29 @@ However, if you would like to use it manually to begin with, you can follow thes
 
 The project brief is the foundation. All agents draw context from it throughout the pipeline. There are two ways to create one.
 
-#### Option A: Project brief form + Orchestrator (recommended)
+#### Option A: Project brief form (recommended)
 
 Open `.taskflow/project-brief-form.html` in any browser, it runs fully offline.
 
 <!-- screenshot: project-brief-form.html open in a browser, showing the Features section -->
 
-Complete all sections: identity, goals, features, workflows, NFRs, integrations, risks, and timeline. Click **Generate brief:** a `project-brief-<name>.json` file downloads. Then invoke the **TaskFlow Project Initiation Manager** in VS Code Copilot chat
+Complete all sections: identity, goals, features, workflows, NFRs, integrations, risks, and timeline. Click **Generate brief** — a `project-brief-<name>.json` file downloads. Then use the slash command in VS Code Copilot chat:
 
 ```
-Check the project brief file and kick off the project
+/start-project
 ```
 
-Tell it you have a brief JSON file and provide the path or paste the contents. The agent calls `ingest_brief`, which parses all structured data into the database and seeds the first pipeline task.
+The skill will ask for the file path or let you paste the contents. It calls `ingest_brief`, which parses all structured data into the database and seeds the first pipeline task.
 
 #### Option B: Conversational brief
 
-Skip the form and let the agent interview you directly, select the `TaskFlow Project Initiation Manager`:
+Skip the form and use the slash command:
 
 ```
- I want to start a new project
+/start-project
 ```
 
-The agent guides you through the brief one question at a time, asking about your problem, users, integrations, and constraints, recording each answer to the database as you go.
+The skill asks whether you have a brief file or want to enter text directly. The TaskFlow Project Initiation Manager then guides you through the brief one question at a time, recording each answer to the database as you go.
 
 <!-- screenshot: VS Code Copilot chat showing the Project Initiation Manager asking a question with the askQuestions UI -->
 
@@ -194,33 +194,33 @@ The agent guides you through the brief one question at a time, asking about your
 
 ### [Step 2] Configure: set up the agent team (recommended)
 
-Once the brief is ingested, invoke the **TaskFlow Dev Manager**:
+Once the brief is ingested, use the slash command:
 
 ```
-Set up the dev team
+/setup-team
 ```
 
-The Dev Manager reads your brief, extracts your tech stack and integrations, queries the [official MCP server registry](https://registry.modelcontextprotocol.io) for relevant servers, and presents recommendations:
+The Dev Manager reads your brief, extracts your tech stack and integrations, queries the [official MCP server registry](https://registry.modelcontextprotocol.io) for relevant servers, and presents a consolidated summary for your approval before making any changes.
 
 <!-- screenshot: VS Code Copilot chat showing Dev Manager askQuestions panel with MCP server recommendations -->
-
-For each confirmed addition, it edits `.vscode/mcp.json` and updates the relevant agent `tools:` arrays. All decisions are recorded to the database via `record_team_setup`.
 
 Skip this phase if your project has no specific integrations or if you want to start building immediately, the pipeline works without it.
 
 ---
 
-### [Step 3] Run: Product Manager
+### [Step 3] Run: the pipeline
 
-Invoke the **TaskFlow Product Manager**:
+Start the full pipeline with the slash command:
 
 ```
-Define product features 
+/run-pipeline
 ```
+
+The Orchestrator picks up the project, shows you a pre-pipeline summary of the approved features and team setup, asks for your approval, then works through steps 3–13 one feature at a time. It prints a status line after each step and escalates to you only when a task is genuinely blocked.
 
 <!-- screenshot: VS Code Copilot chat showing the Orchestrator reporting step completions and a pipeline summary -->
 
-Use this slash command `/my-tasks` anytime to see what's pending, then invoke the appropriate agent directly.
+You can also use `/my-tasks` at any point to see what's pending for a specific agent role and invoke that agent directly.
 
 ---
 
@@ -266,9 +266,13 @@ Steps 5–13 repeat per feature. New-feature decisions from step 9 feed back to 
 
 ## Slash commands
 
+Type `/` in Copilot chat to see all available commands.
+
 | Command | What it does |
 |---|---|
-| `/start-project` | Start a project from free-text description or a brief file |
+| `/start-project` | Start a project — accepts a brief file path or inline text |
+| `/setup-team` | Configure the agent team for your tech stack (Dev Manager) |
+| `/run-pipeline` | Run the full pipeline autonomously (Orchestrator) |
 | `/my-tasks` | Show pending tasks for a chosen agent role |
 | `/pipeline-status` | Show the full pipeline state for a project |
 

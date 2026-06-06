@@ -4,6 +4,7 @@ description: Defines features and DoD, manages decisions and decision artefacts,
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
 tools: ['taskflow/list_projects', 'taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_features', 'taskflow/read_backlog', 'taskflow/promote_backlog_item', 'taskflow/submit_decisions', 'taskflow/submit_decision_artefact', 'taskflow/complete_decisions_task', 'search/codebase', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
+model: [Claude Sonnet 4.6, Claude Haiku 4.5]
 handoffs:
   - label: Review Features
     agent: TaskFlow PM Reviewer

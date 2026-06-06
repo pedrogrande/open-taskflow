@@ -4,6 +4,7 @@ description: Writes the retrospective report and recommendations after tests pas
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
 tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_retro', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
+model: [Claude Haiku 4.5, Claude Sonnet 4.6]
 handoffs:
   - label: Write Decisions
     agent: TaskFlow Product Manager

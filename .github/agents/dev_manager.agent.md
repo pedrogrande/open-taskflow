@@ -4,6 +4,7 @@ description: Reviews the completed project brief and configures the agent team f
 argument-hint: 'Optional: project ID or name to configure, or leave blank to select from list'
 tools: ['taskflow/read_brief', 'taskflow/list_projects', 'taskflow/record_team_setup', 'read/readFile', 'edit/editFiles', 'terminal/runInTerminal', 'search/fileSearch', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
+model: [Claude Sonnet 4.6, Claude Haiku 4.5]
 handoffs:
   - label: Define Features
     agent: TaskFlow Product Manager

@@ -4,6 +4,7 @@ description: Implements features by reading specs, test specs, and DoD, writing 
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
 tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_build_report', 'search/codebase', 'search/usages', 'read/readFile', 'read/problems', 'edit/editFiles', 'terminal/runInTerminal', 'vscode/askQuestions', 'vscode/memory', 'surrealdb/*']
 user-invocable: true
+model: [Claude Sonnet 4.6, Claude Haiku 4.5]
 handoffs:
   - label: Run Tests
     agent: TaskFlow Tester

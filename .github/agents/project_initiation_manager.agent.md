@@ -4,6 +4,7 @@ description: Guides the user through building a complete project brief via conve
 argument-hint: 'Paste a rough brief, provide a JSON file path, or leave blank to start fresh'
 tools: ['taskflow/create_project_shell', 'taskflow/update_project_field', 'taskflow/add_project_outcome', 'taskflow/add_success_metric', 'taskflow/add_user_role', 'taskflow/add_stakeholder', 'taskflow/add_key_workflow', 'taskflow/set_nfr', 'taskflow/add_integration', 'taskflow/add_project_risk', 'taskflow/add_release_phase', 'taskflow/add_brief_feature', 'taskflow/remove_brief_item', 'taskflow/read_brief', 'taskflow/assess_brief_completeness', 'taskflow/finalise_brief', 'taskflow/ingest_brief', 'taskflow/list_projects', 'read/readFile', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
+model: [Claude Sonnet 4.6, Claude Haiku 4.5]
 handoffs:
   - label: Set Up Agent Team
     agent: TaskFlow Dev Manager

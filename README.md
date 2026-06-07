@@ -14,6 +14,8 @@ Just open `.taskflow/project-brief-form.html` in your browser - no server needed
 
 ---
 
+**Note on Claude Code support:** This is not yet working well with **Claude Code** out of the box. If you'd like to collaborate with me to improve the tool, please reach out or submit pull requests.
+
 ## Contents
 
 ### About TaskFlow

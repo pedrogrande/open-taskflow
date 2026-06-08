@@ -1,6 +1,6 @@
 ---
 name: start-project
-description: Start a new TaskFlow project. Prompts for a project brief (file path or inline text), creates the project record, and seeds the pipeline for the product manager. Use this to kick off a new development cycle.
+description: Start a new TaskFlow project. Prompts for a project brief (file path or inline text), then hands off to the Project Initiation Manager to build and validate the brief before the Dev Manager configures the team. Use this to kick off a new development cycle.
 argument-hint: "[brief file path or leave blank to enter text]"
 disable-model-invocation: true
 ---
@@ -26,9 +26,10 @@ disable-model-invocation: true
 6. Report back:
    - Project ID and name
    - Confirm a step-3 task has been seeded for the product manager
-   - Tell the user: "Invoke the **TaskFlow Product Manager** agent to begin defining features."
+   - Tell the user: "The project is created. Next, invoke the **TaskFlow Project Initiation Manager** to review and validate the brief, then the **TaskFlow Dev Manager** to configure the agent team before feature definition begins."
 
 ## Notes
 
 - `brief_text` must contain the full content — not just a summary. Agents without file access depend on this field.
 - If the user provides a file, still copy the full content into `brief_text`.
+- The Project Initiation Manager will call `ingest_brief` or `finalise_brief` to validate the brief and seed the pipeline. The Dev Manager should be run before the Product Manager to ensure agents have the right tools for the tech stack.

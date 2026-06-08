@@ -1,8 +1,23 @@
 -- TaskFlow DB — schema + pipeline seed data
 -- Idempotent: safe to run multiple times (CREATE TABLE IF NOT EXISTS)
 -- All foreign keys enforced at connection level via PRAGMA foreign_keys = ON
+--
+-- MIGRATIONS: Schema changes after initial release are applied via numbered
+-- migration files in .taskflow/server/migrations/. The schema_migrations table
+-- (below) tracks which migrations have been applied. _ensure_db() creates the
+-- base schema; _run_migrations() applies any pending migrations on startup.
 
 PRAGMA foreign_keys = ON;
+
+-- ---------------------------------------------------------------------------
+-- Schema migrations (must be first table — tracks upgrade state)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version     INTEGER PRIMARY KEY,  -- migration number (e.g. 1, 2, 3)
+    name        TEXT NOT NULL,         -- human-readable label (e.g. "add_cycle_number")
+    applied_at  TEXT NOT NULL DEFAULT (datetime('now', 'utc'))
+);
 
 -- ---------------------------------------------------------------------------
 -- Pipeline definition
@@ -23,23 +38,24 @@ CREATE TABLE IF NOT EXISTS pipeline_steps (
     repair_step_number  INTEGER
 );
 
--- Seed the 13 pipeline steps (INSERT OR IGNORE keeps it idempotent)
+-- Seed the pipeline steps (INSERT OR IGNORE keeps it idempotent)
+-- Steps 1–2 are handled pre-pipeline by the Project Initiation Manager (create_project_shell + finalise_brief).
+-- They are kept in the schema for backward compatibility but are not seeded as active pipeline steps.
+-- The pipeline effectively starts at step 3 (Define features).
 INSERT OR IGNORE INTO pipeline_steps
-    (step_number, name, agent_role, output_record_type, requires_approval, on_approval_spawn)
+    (step_number, name, agent_role, output_record_type, requires_approval, on_approval_spawn, repair_step_number)
 VALUES
-    (1,  'Ingest brief',             'product_manager', 'project',           1, '[2]'),
-    (2,  'Review project',           'pm_reviewer',     'task_approval',     0, '[3]'),
-    (3,  'Define features',          'product_manager', 'features',          1, '[4]'),
-    (4,  'Review features',          'pm_reviewer',     'task_approval',     0, 'per_feature'),
-    (5,  'Write test specs',         'tester',          'test_specs',        1, '[6]'),
-    (6,  'Review test specs',        'test_reviewer',   'task_approval',     0, '[7]'),
-    (7,  'Build',                    'builder',         'build_report',      1, '[8]'),
-    (8,  'Run tests',                'tester',          'test_results',      0, '[9]'),
-    (9,  'Retrospective',            'documenter',      'retro_report',      0,  NULL),
-    (10, 'Decisions',                'product_manager', 'decisions',         1, '[11]'),
-    (11, 'Review decisions',         'pm_reviewer',     'task_approval',     0, '[12]'),
-    (12, 'Implement decisions',      'product_manager', 'decision_artefacts',1, '[13]'),
-    (13, 'Final verification',       'pm_reviewer',     'task_approval',     0, '[3]');
+    (3,  'Define features',          'product_manager', 'features',          1, '[4]',          NULL),
+    (4,  'Review features',          'pm_reviewer',     'task_approval',     0, 'per_feature',  NULL),
+    (5,  'Write test specs',         'tester',          'test_specs',        1, '[6]',          NULL),
+    (6,  'Review test specs',        'test_reviewer',   'task_approval',     0, '[7]',          NULL),
+    (7,  'Build',                    'builder',         'build_report',      1, '[8]',          NULL),
+    (8,  'Run tests',                'tester',          'test_results',      0, '[9]',          7),
+    (9,  'Retrospective',            'documenter',      'retro_report',      0,  NULL,          NULL),
+    (10, 'Decisions',                'product_manager', 'decisions',         1, '[11]',         NULL),
+    (11, 'Review decisions',         'pm_reviewer',     'task_approval',     0, '[12]',         NULL),
+    (12, 'Implement decisions',      'product_manager', 'decision_artefacts',1, '[13]',        NULL),
+    (13, 'Final verification',       'pm_reviewer',     'task_approval',     0, '[3]',          NULL);
 
 -- Note: step 8 on_approval_spawn is NULL because submit_test_results auto-spawns step 9
 -- on all-pass. Step 9 on_approval_spawn is NULL because submit_retro auto-spawns step 10.
@@ -180,7 +196,8 @@ CREATE TABLE IF NOT EXISTS features (
     title                   TEXT NOT NULL,
     description             TEXT NOT NULL,
     source_requirement_text TEXT,
-    order_index             INTEGER NOT NULL DEFAULT 0
+    order_index             INTEGER NOT NULL DEFAULT 0,
+    cycle_number            INTEGER NOT NULL DEFAULT 1
 );
 
 -- ---------------------------------------------------------------------------

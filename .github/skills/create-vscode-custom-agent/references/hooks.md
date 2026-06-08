@@ -178,8 +178,7 @@ Every hook receives JSON via stdin with common fields:
 | Scope | Location |
 |-------|----------|
 | Workspace | `.github/hooks/*.json` |
-| Workspace (Claude) | `.claude/settings.json`, `.claude/settings.local.json` |
-| User | `~/.copilot/hooks`, `~/.claude/settings.json` |
+| User | `~/.copilot/hooks` |
 | Agent-scoped | `hooks` field in `.agent.md` frontmatter |
 
 Custom locations via `chat.hookFilesLocations` setting:
@@ -245,10 +244,4 @@ cat <<EOF
 EOF
 ```
 
-## Claude Code Compatibility
-
-VS Code reads Claude Code hook configurations from `.claude/settings.json`. Differences:
-
-- **Tool input property names**: Claude Code uses `snake_case` (e.g., `tool_input.file_path`), VS Code uses `camelCase` (e.g., `tool_input.filePath`)
-- **Tool names**: Different naming conventions. Check `tool_name` in hook input.
-- **Matchers**: Parsed but not applied — hooks run on all matching events regardless of matcher.
+---

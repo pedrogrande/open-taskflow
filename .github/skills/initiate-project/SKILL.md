@@ -44,6 +44,23 @@ The user has nothing written down yet.
 1. Call `create_project_shell(name='New Project')`.
 2. Start with question 1 in the question sequence below.
 
+### Path D — Existing project onboarding
+
+The user has an existing codebase and wants to add TaskFlow to manage ongoing development. They may already have agents, skills, instructions, MCP servers, documentation, and partially-built features.
+
+1. Call `create_project_shell(name=<extracted from workspace or 'Existing Project'>)` to get a `project_id`.
+2. **Scan the workspace** — read the README, any docs folder, existing agent files (`.agent.md`), skills (`SKILL.md`), instructions (`.instructions.md`), MCP config (`.vscode/mcp.json`), and any existing test or CI configuration. Parse everything you can into the brief fields immediately.
+3. **Ask the user to confirm what's already built.** Use `vscode/askQuestions` with:
+   > "I've scanned your workspace and found [summary of what was detected]. Which of these features are already working and should be marked as done?"
+
+   Offer multi-select options based on what was detected, plus "Other (describe below)".
+4. **Record completed features** — for each feature the user confirms as working, add it as a brief feature with `priority="Must"` and a note like `"[Already built — mark as done in pipeline]"` in the description. The PM will see these in step 3 and can create them as already-completed features.
+5. **Record existing agent/skill/MCP setup** — add a note to `brief_text` or `out_of_scope` describing what already exists so the Dev Manager knows not to overwrite it. Example: `"Existing setup: 2 agents (custom-builder, custom-tester), 1 MCP server (postgres), 3 skills. Preserve these during team setup."`
+6. **Record known issues and tech debt** — ask: "Are there any known bugs, TODOs, or technical debt the pipeline should address?" Add each as a brief feature with `priority="Should"` or `"Could"` and a description prefixed with `"[Tech debt]"` or `"[Bug]"`.
+7. Enter the completeness loop for any remaining gaps.
+
+**Key principle:** Path D is about capturing what already exists so TaskFlow can work *with* it, not overwrite it. The Dev Manager and PM need to know what's already built, what's already configured, and what needs fixing vs what needs building from scratch.
+
 ---
 
 ## Conversation rules — follow these strictly
@@ -299,9 +316,10 @@ Call `read_brief(project_id)` and present the following in chat. Do not write a 
 Then present next step options:
 > "The brief is complete. What would you like to do next?"
 >
-> 1. **Finalise and start the pipeline** — calls `finalise_brief`, hands off to the Product Manager
-> 2. **Revise something** — tell me what to change
-> 3. **Download a formatted brief** — I'll render it as markdown in full
+> 1. **Finalise and set up the agent team** — calls `finalise_brief`, then hands off to the Dev Manager to configure MCP servers, skills, and agent capabilities before feature definition begins
+> 2. **Finalise and skip team setup** — calls `finalise_brief`, then hands off directly to the Product Manager (not recommended — the Dev Manager ensures agents have the right tools for your tech stack)
+> 3. **Revise something** — tell me what to change
+> 4. **Download a formatted brief** — I'll render it as markdown in full
 
 ---
 

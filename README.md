@@ -674,3 +674,5 @@ If you're contributing a schema change to TaskFlow:
 5. Update `init.sql` to include the new table/column for fresh installs.
 
 See `.taskflow/server/migrations/README.md` for the full conventions.
+
+code --diff upgrades/agents/dev_manager.agent.md .github/agents/dev_manager.agent.md

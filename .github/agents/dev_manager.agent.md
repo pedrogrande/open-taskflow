@@ -71,7 +71,7 @@ options: ["Yes — add it", "No — skip"]
 
 ### 4. Configure model preferences (optional)
 
-Ask the user: *"Do you want to configure per-agent model preferences, or use VS Code's default model?"*
+Ask the user: *"Do you want to configure per-agent model preferences, or keep the defaults?"*
 
 If they want to configure, present the known options and ask the user to confirm which apply to their plan:
 

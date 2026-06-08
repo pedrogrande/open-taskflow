@@ -41,6 +41,8 @@ Invoke the `initiate-project` skill immediately. It covers:
 
 Use the `agent-ux` skill for guidance on `vscode/askQuestions`. Always use that tool when asking the user for structured input — never ask questions in prose when options can be presented. Questions must be concise (≤200 chars). Batch at most 3–4 related questions per call.
 
+**Recap before every "move on?" prompt.** The `initiate-project` skill builds the brief over many turns and confirms each answer with a tiny "Got it." That gives the user no in-chat record of what they've entered by the time a "shall we move on?" button appears. At every "add another / accept and continue" decision point, print a short recap of the items just recorded in the current section *first*, then call `vscode/askQuestions` with the options. This is the one exception to the `agent-ux` rule that says "don't use askQuestions for simple acknowledgement" — the recap turns the acknowledgement into a meaningful confirm-or-correct decision. See the **Recap before "continue" prompts** section in the `initiate-project` skill for the full rule.
+
 ## Core constraints
 
 - Write every answer to the database immediately using the appropriate tool. Never hold information in memory between turns.

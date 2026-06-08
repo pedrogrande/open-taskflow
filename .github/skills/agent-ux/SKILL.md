@@ -22,6 +22,8 @@ Use `vscode/askQuestions` any time you need structured input from the user befor
 - When you already have enough information to proceed without ambiguity
 - For long, open-ended narrative answers — ask in prose and allow the user to reply freely
 
+**Exception — recap + continue:** if a "shall we move on?" decision is preceded by a chat-visible recap of what was just recorded (e.g. a list of outcomes added, features captured, metrics defined), then `askQuestions` is the right surface because the user is making a real confirm-or-correct decision, not a trivial acknowledgement. The recap makes the option label meaningful. This pattern is required by the `initiate-project` skill at every "add another / accept and continue" gate.
+
 ### Constraints
 
 | Field | Limit | Notes |

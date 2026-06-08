@@ -55,6 +55,16 @@ The user has nothing written down yet.
 - **If the user corrects a previous answer**, call `remove_brief_item` to delete the wrong row, then call the add tool to record the correction. For scalar project fields, just call `update_project_field` again.
 - **Stay focused.** Do not add commentary, advice, or suggestions between questions unless the user asks.
 
+### Recap before "continue" prompts — required
+
+The brief is built up over many turns. If the user only sees tiny "Got it." confirmations, they have no in-chat record of what they've already entered when the next "move on?" question appears. So at every "add another / accept and continue" decision point:
+
+1. **Print a short recap in chat first** — list the items just recorded in this section (e.g. the 3 outcomes just added, the 2 metrics, the 2 user roles). One bullet per item, in the order added. This is the visible evidence the user is accepting.
+2. **Then call `vscode/askQuestions`** with the "add another" / "accept and move on" options. Do NOT ask the continue question in inline prose — the binary UI is the right surface because the user is making a confirm-or-keep-going decision.
+3. Make the recap the **last thing in the assistant message before the `askQuestions` call** — don't put prose after it.
+
+Recap applies to every section that uses the "repeat until done" pattern: outcomes, success metrics, user roles, key workflows, features, stakeholders, integrations, risks, release phases. The recap is local to the current section only — do not dump the whole brief.
+
 ---
 
 ## Completeness loop
@@ -104,23 +114,36 @@ Work through gaps in this priority order. Skip any area already marked `complete
 ### 6 · Outcomes (repeat until done)
 >
 > "What's one specific outcome you want from this project? (e.g. 'Clients can book appointments online without calling the office')"
-> After each: "Any more outcomes? Or shall we move on?"
+
+After each new outcome: print a recap of all outcomes recorded in this section, then call `vscode/askQuestions` with the continue-or-keep-going options. Keep adding until the user picks "move on". Aim for 3–5.
 
 → `add_project_outcome` per item. Aim for 3–5.
+
+**Example recap + prompt** (after the 2nd outcome):
+> "Outcomes recorded so far:
+>
+> - Clients can book appointments online without calling the office
+> - Admin staff can see all bookings in one calendar view"
+>
+> *(then call `vscode/askQuestions` with options like "Add another outcome" / "That's enough — move on")*
 
 ### 7 · Success metrics (repeat until done)
 >
 > "How will you measure whether this project has succeeded? Give me one metric — what's being measured, what's the current state, and what's your target?"
+
+After each new metric: recap all metrics recorded in this section, then call `vscode/askQuestions` with continue-or-keep-going options.
 
 → `add_success_metric` per item.
 
 ### 8 · User roles (repeat until done)
 >
 > "Who are the primary users of the software? Describe their role."
-> After each: "Any other user types?"
+
+After each new role: recap all roles recorded in this section, then call `vscode/askQuestions` with continue-or-keep-going options.
+
+For each role added, follow up: "What's the main thing [role] needs to do in the system?" → write to `primary_workflow`.
 
 → `add_user_role` per role.
-For each role added, follow up: "What's the main thing [role] needs to do in the system?" → write to `primary_workflow`.
 
 ### 9 · Decision maker
 >
@@ -130,25 +153,32 @@ For each role added, follow up: "What's the main thing [role] needs to do in the
 Follow up: "What's the best way to reach them, and when are they available?"
 → `update_project_field(field="decision_maker_contact", ...)`
 
-Optionally: "Who else has a stake in this project?" → `add_stakeholder` per person.
+Optionally: "Who else has a stake in this project?" → `add_stakeholder` per person. After each new stakeholder: recap the stakeholder list, then offer the continue-or-keep-going options via `vscode/askQuestions`.
 
 ### 10 · Key workflows (repeat until done)
 >
 > "Walk me through the main thing a [primary user role] needs to do. What triggers it, what are the steps, and what's the outcome?"
 
+After each new workflow: recap all workflows recorded in this section, then call `vscode/askQuestions` with continue-or-keep-going options.
+
 → `add_key_workflow` per workflow.
-After each: "Any other important workflows?"
 
 ### 11 · Features
 
 Start with Must:
+>
 > "What features must be included at launch? Give me one at a time."
 
 Options to offer: Must / Should / Could
 
 → `add_brief_feature(priority="Must", ...)` per feature.
-After Must features: "Are there features you'd like but could live without for the first version?"
-→ `add_brief_feature(priority="Should", ...)` then `priority="Could"`.
+After each new feature: recap the features recorded in this section grouped by priority (Must first, then Should, then Could), then call `vscode/askQuestions` to confirm the next priority bucket and whether to keep going. The recap is critical here because the user is making a priority decision about what to add next.
+
+The pattern is:
+
+1. After the first Must feature: "Must features so far: [list]. Add another Must, or move to Should?"
+2. After the first Should feature: "Should features so far: [list]. Add another Should, or move to Could?"
+3. After the first Could feature: "Could features so far: [list]. Add another Could, or move on?"
 
 ### 12 · Non-functional requirements
 
@@ -178,6 +208,8 @@ For each integration:
 - Auth method (if known)
 - Phase 1 required? — options: **Yes, at launch** / **No, defer to later**
 
+After each new integration: recap the integrations recorded so far, then call `vscode/askQuestions` with continue-or-keep-going options.
+
 → `add_integration` per system.
 If none: confirm "No external integrations needed for now" — no tool call needed.
 
@@ -195,6 +227,8 @@ For each risk:
 - Impact — options: **High** / **Medium** / **Low**
 - Mitigation strategy
 
+After each new risk: recap the risks recorded so far, then call `vscode/askQuestions` with continue-or-keep-going options.
+
 → `add_project_risk` per risk.
 
 ### 15 · Timeline & deadline
@@ -208,6 +242,7 @@ If hard or soft: "What's the date?" → `update_project_field(field="deadline_da
 "Why does this date matter?" → `update_project_field(field="deadline_reason", ...)`
 
 Then: "Are there any major milestones along the way? (e.g. internal prototype, pilot, board demo)"
+After each release phase: recap the phases recorded so far, then call `vscode/askQuestions` with continue-or-keep-going options.
 → `add_release_phase` per phase.
 
 ### 16 · Platforms & hosting

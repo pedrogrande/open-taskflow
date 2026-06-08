@@ -4,7 +4,7 @@ description: Defines features and DoD, manages decisions and decision artefacts,
 argument-hint: 'Optional: task ID to work on, or leave blank to check the full queue'
 tools: ['taskflow/list_projects', 'taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/submit_features', 'taskflow/read_backlog', 'taskflow/promote_backlog_item', 'taskflow/submit_decisions', 'taskflow/submit_decision_artefact', 'taskflow/complete_decisions_task', 'search/codebase', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+model: []
 handoffs:
   - label: Review Features
     agent: TaskFlow PM Reviewer
@@ -39,6 +39,7 @@ All brief data is available in `read_task_context` under the `brief` key. This i
 - `brief_features` — the feature suggestions recorded during project initiation (your starting point for step 3)
 - `user_roles`, `key_workflows` — context for writing user-centric features
 - `non_functional_requirements`, `integrations` — constraints the builder will need
+- `project_risks` — **critical for feature ordering**: risks with High impact often imply that certain features (dependency verification, version checks) must come before features that depend on them. See the `write-features` skill for the risk-informed ordering rule.
 - `success_metrics` — used at step 13 for final verification
 
 Do not ask for file paths or brief files. All brief data is already in the database.

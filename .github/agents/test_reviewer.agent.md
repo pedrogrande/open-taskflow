@@ -4,7 +4,7 @@ description: Reviews test specs (step 6) against the feature's definitions of do
 argument-hint: 'Optional: task ID to review, or leave blank to check the full queue'
 tools: ['taskflow/read_pending_tasks', 'taskflow/claim_task', 'taskflow/read_task_context', 'taskflow/approve_task', 'taskflow/reject_task', 'search/codebase', 'read/readFile', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
-model: [Claude Haiku 4.5, Claude Sonnet 4.6]
+model: []
 handoffs:
   - label: Build Feature
     agent: TaskFlow Builder

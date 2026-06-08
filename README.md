@@ -1,10 +1,10 @@
 # TaskFlow
 
-**A structured, database-driven development pipeline for VS Code + GitHub Copilot and Claude Code.**
+**A structured, database-driven development pipeline for VS Code + GitHub Copilot.**
 
 TaskFlow gives your AI agents a shared memory, a defined process, and clear roles. Instead of one agent doing everything in one long chat, each development activity is handled by a specialist agent, at the right step, with the right context, and only when the previous step is approved.
 
-Clone this repo into any project. VS Code and Claude Code both wire up the MCP server, agents, and skills automatically. The SQLite database is the single source of truth: it records every decision, tracks every task, and gives each agent exactly the context it needs, nothing more.
+Clone this repo into any project. VS Code wires up the MCP server, agents, and skills automatically. The SQLite database is the single source of truth: it records every decision, tracks every task, and gives each agent exactly the context it needs, nothing more.
 
 ![TaskFlow project brief form](./.taskflow/images/project-brief-form.jpg)
 
@@ -13,8 +13,6 @@ This (optional) Project brief builder makes it easy to specify what you want to 
 Just open `.taskflow/project-brief-form.html` in your browser - no server needed.
 
 ---
-
-**Note on Claude Code support:** This is not yet working well with **Claude Code** out of the box. If you'd like to collaborate with me to improve the tool, please reach out or submit pull requests.
 
 ## Contents
 
@@ -30,7 +28,6 @@ Just open `.taskflow/project-brief-form.html` in your browser - no server needed
 
 - 0️⃣ [Prerequisites](#prerequisites)
 - 🆅 [Setup for VS Code](#setup-for-vs-code)
-- 🄲 [Setup for Claude Code](#setup-for-claude-code)
 - ➡️ [Agent model assignments](#agent-model-assignments)
 
 ### Usage
@@ -39,7 +36,7 @@ Just open `.taskflow/project-brief-form.html` in your browser - no server needed
   - [1. Initiate: build the project brief](#1-initiate-build-the-project-brief)
   - [2. Configure: set up the agent team](#2-configure-set-up-the-agent-team-recommended)
   - [3. Run: the pipeline](#3-run-the-pipeline)
-- [The 13-step pipeline](#the-13-step-pipeline)
+- [The pipeline (steps 3–13)](#the-pipeline-steps-313)
 - [Agents](#agents)
 - [Slash commands](#slash-commands)
 - [Project brief form](#project-brief-form-whats-captured)
@@ -50,6 +47,7 @@ Just open `.taskflow/project-brief-form.html` in your browser - no server needed
 - [Project layout](#project-layout)
 - [Schema reference](#schema-reference)
 - [Unblocking a stuck task](#unblocking-a-stuck-task)
+- [Upgrading TaskFlow](#upgrading-taskflow)
 
 ---
 
@@ -88,7 +86,7 @@ No reviewer agent generates output, they only read and approve or reject. This s
 | **Dev Manager** | Pre-pipeline | Queries MCP registry, recommends integrations, edits `mcp.json` | `record_team_setup`, MCP registry query |
 | **Orchestrator** | 3–13 | Runs the full pipeline autonomously; retries on failure; escalates only when genuinely blocked | Pipeline state read, step invocation |
 | **Product Manager** | 3, 10, 12 | Defines features + definitions of done; writes decisions on retro recommendations; formalises decision artefacts | `features`, `definitions_of_done`, `decisions`, `decision_artefacts` |
-| **PM Reviewer** | 2, 4, 11, 13 | Approves scope, feature set, decisions, and final success-metric verification; spawns per-feature tasks at step 4 | `approve/reject task`, feature task spawn |
+| **PM Reviewer** | 4, 11, 13 | Approves feature set, decisions, and final success-metric verification; spawns per-feature tasks at step 4 | `approve/reject task`, feature task spawn |
 | **Tester** | 5, 8 | Writes test specs per feature; executes tests against the build | `test_specs`, `test_results` |
 | **Test Reviewer** | 6 | Approves test specs before any build work is authorised | `approve/reject test_specs` |
 | **Builder** | 7 | Implements features against approved test specs; the only agent with direct workspace file access | `build_reports`, workspace writes |
@@ -140,7 +138,7 @@ TaskFlow solves this by treating development like a proper process:
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/getting-started/installation/), `brew install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- VS Code 1.99+ with GitHub Copilot (agent mode enabled) **or** Claude Code
+- VS Code 1.99+ with GitHub Copilot (agent mode enabled)
 
 <!-- screenshot: VS Code settings panel showing Chat Agent Mode enabled -->
 
@@ -193,43 +191,17 @@ These are already in the `.gitignore` included with this repo. If you merged int
 
 ---
 
-## Setup for Claude Code
-
-### 1. Clone into your project
-
-Same as VS Code setup — clone the repo or copy directories into an existing project root.
-
-### 2. Open in Claude Code
-
-```bash
-claude .
-```
-
-Claude Code detects `.mcp.json` on startup and connects to the TaskFlow MCP server automatically. Confirm by running `/mcp` to list active MCP servers — you should see `taskflow` listed.
-
-### 3. Copy files to add to an existing project
-
-```
-.claude/
-.taskflow/
-.mcp.json
-CLAUDE.md
-.gitignore   # add the .taskflow/ entries to your existing .gitignore
-```
-
----
-
 ### Agent model assignments
 
-Every agent file has a `model:` array in its YAML frontmatter. If the first model isn't available, the second model is tried.
+Every agent file has a `model:` field in its YAML frontmatter. By default, no models are specified — VS Code uses its default model for each agent.
 
-Defaults are already in the files, so it works out-of-the-box with no configuration.
+You can set specific models per agent. If the first model isn't available, the second is tried.
 
-**Note:** the default models are using the same provider so if the first model fails, the second is likely to as well. Use a different provider for the backup model for greater workflow durability.
+**Note:** if you set models from the same provider, the fallback may also be unavailable. Use a different provider for the backup model for greater workflow durability.
 
 #### Tiers
 
-By default, there are two tiers of agents but this is rather arbitrary so just see this as a guide, not an absolute.
+The Dev Manager recommends two tiers as a starting point, but this is a guide, not an absolute.
 
 ##### High tier
 
@@ -260,33 +232,29 @@ By default, there are two tiers of agents but this is rather arbitrary so just s
 
 #### Dev Manager can configure models during team setup
 
-- **Step 3** (new): asks if the user wants to customise model preferences; runs `claude model --help` to detect available models; shows the tier table with recommendations; collects preferences
+- **Step 3** (new): asks if the user wants to customise model preferences; shows the tier table with recommendations; collects preferences
 - **Approval summary** (step 4): includes a "Model configuration" table showing primary + fallback for each agent, with "default" shown for unchanged ones
 - **Apply changes** (step 5): includes instructions for editing the `model:` YAML block — single model, array, or Ollama format
 
-#### Default config
+#### Setting models manually
 
-This works out of the box for both Claude Code and VS Code.
-
-```yaml
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]   # high tier
-model: [Claude Haiku 4.5, Claude Sonnet 4.6]   # low tier
-```
-
-In VS Code, these will use the Copilot Claude models. If you want to use your Anthropic Claude models, you need to add `(anthropic)` after the version number.
+Edit the `model:` line in any agent's `.agent.md` file:
 
 ```yaml
-model: [Claude Sonnet 4.6 (anthropic), glm-5.1:cloud (ollama) (anthropic)]   # high tier
-model: [glm-5.1:cloud (ollama) (anthropic), Claude Sonnet 4.6 (anthropic)]   # low tier
-```
+# Single model
+model: [Claude Sonnet 4.6]
 
-#### Configuring other models
-
-It is similar to use Ollama models.
-
-```yaml
+# Array with fallback — tried in order, first available wins
 model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+
+# Ollama model
+model: [glm-5.1:cloud (ollama)]
+
+# Anthropic direct
+model: [Claude Sonnet 4.6 (anthropic)]
 ```
+
+In VS Code, model names without a provider suffix use the Copilot Claude models. If you want to use your Anthropic Claude models directly, add `(anthropic)` after the version number.
 
 ---
 
@@ -332,7 +300,7 @@ The skill asks whether you have a brief file or want to enter text directly. The
 
 ---
 
-### 2. Configure: set up the agent team (recommended)
+### 2. Configure: set up the agent team
 
 Once the brief is ingested, use the slash command:
 
@@ -342,9 +310,7 @@ Once the brief is ingested, use the slash command:
 
 The Dev Manager reads your brief, extracts your tech stack and integrations, queries the [official MCP server registry](https://registry.modelcontextprotocol.io) for relevant servers, and presents a consolidated summary for your approval before making any changes.
 
-<!-- screenshot: VS Code Copilot chat showing Dev Manager askQuestions panel with MCP server recommendations -->
-
-Skip this phase if your project has no specific integrations or if you want to start building immediately, the pipeline works without it.
+This step ensures agents have the right MCP servers, skills, and model preferences for your tech stack. Skipping it means agents may lack tools they need during the pipeline.
 
 ---
 
@@ -364,25 +330,69 @@ You can also use `/my-tasks` at any point to see what's pending for a specific a
 
 ---
 
-## The 13-step pipeline
+## Adding TaskFlow to an existing project
+
+If you already have a codebase, agents, skills, or MCP servers, TaskFlow can work with what you have instead of starting from scratch.
+
+### Quick start
+
+```
+/onboard
+```
+
+This scans your workspace, detects existing agents, skills, MCP servers, tech stack, and documentation, then guides you through creating a brief that captures what's already built.
+
+### What `/onboard` does
+
+1. **Scans the workspace** — reads your README, `package.json`/`pyproject.toml`, existing agent files, skills, MCP config, test files, and CI configuration
+2. **Confirms what's already built** — you pick which features are working so TaskFlow doesn't re-build them
+3. **Preserves your existing setup** — agents, skills, and MCP servers you already have are kept; TaskFlow adds its own alongside them
+4. **Captures known issues** — bugs, TODOs, and tech debt become pipeline features with appropriate priorities
+5. **Hands off to the Project Initiation Manager** — who fills in any remaining brief gaps and finalises
+
+### What the Dev Manager does differently
+
+When the Dev Manager detects existing agents or MCP servers in your workspace:
+
+- **Merges, doesn't replace** — adds TaskFlow tools to existing agents' tool lists rather than overwriting them
+- **Preserves existing MCP servers** — adds TaskFlow's server entry alongside your existing ones in `.vscode/mcp.json`
+- **Flags conflicts** — if an existing agent has the same role as a TaskFlow agent, you decide which to keep
+
+### What the Product Manager does differently
+
+When the PM sees features marked as "already built":
+
+- **Creates them as completed features** — the pipeline has a record without re-building
+- **Focuses new features on gaps** — what's missing, what needs fixing, what's next on the roadmap
+- **Uses existing docs as DoD evidence** — if the README says "users can log in via Google", that's verifiable
+
+### Manual approach
+
+If you prefer not to use `/onboard`, you can:
+
+1. Fill in the "Existing Project Context" section (§14) of `.taskflow/project-brief-template.md`
+2. Use `/start-project` and paste the completed template as your brief text
+3. The Initiation Manager will parse it and enter the completeness loop for any gaps
+
+---
+
+## The pipeline (steps 3–13)
 
 | Step | Agent | Activity |
 |---|---|---|
-| 1 | Project Initiation Manager | Brief ingested, project created |
-| 2 | PM Reviewer | Approves project scope |
 | 3 | Product Manager | Defines features + definitions of done |
 | 4 | PM Reviewer | Approves feature set, spawns per-feature tasks |
 | 5 | Tester | Writes test specs per feature |
 | 6 | Test Reviewer | Approves test specs |
 | 7 | Builder | Implements the feature |
-| 8 | Tester | Runs tests against the build |
+| 8 | Tester | Runs tests against the build (fail → builder fixes → re-test) |
 | 9 | Documenter | Writes retrospective + recommendations |
 | 10 | Product Manager | Writes decisions on recommendations |
 | 11 | PM Reviewer | Approves decisions |
 | 12 | Product Manager | Writes decision artefacts (patterns, gotchas, notes) |
 | 13 | PM Reviewer | Final verification against success metrics |
 
-Steps 5–13 repeat per feature. New-feature decisions from step 9 feed back to step 3 as the next cycle's backlog.
+Steps 1–2 (brief ingestion and project review) are handled pre-pipeline by the Project Initiation Manager and Dev Manager. Steps 5–13 repeat per feature. New-feature decisions from step 9 feed back to step 3 as the next cycle's backlog.
 
 ---
 
@@ -394,7 +404,7 @@ Steps 5–13 repeat per feature. New-feature decisions from step 9 feed back to 
 | **TaskFlow Dev Manager** | Configures the agent team for your specific tech stack (pre-pipeline) |
 | **TaskFlow Orchestrator** | Runs steps 3–13 autonomously, the default way to work the pipeline |
 | **TaskFlow Product Manager** | Defines features, decisions, and decision artefacts (steps 3, 10, 12) |
-| **TaskFlow PM Reviewer** | Reviews and approves PM outputs (steps 2, 4, 11, 13) |
+| **TaskFlow PM Reviewer** | Reviews and approves PM outputs (steps 4, 11, 13) |
 | **TaskFlow Tester** | Writes test specs and runs tests (steps 5, 8) |
 | **TaskFlow Test Reviewer** | Reviews test specs (step 6) |
 | **TaskFlow Builder** | Implements features (step 7) |
@@ -411,10 +421,40 @@ Type `/` in Copilot chat to see all available commands.
 | Command | What it does |
 |---|---|
 | `/start-project` | Start a project — accepts a brief file path or inline text |
+| `/onboard` | Add TaskFlow to an existing project — scans workspace, detects existing setup |
 | `/setup-team` | Configure the agent team for your tech stack (Dev Manager) |
 | `/run-pipeline` | Run the full pipeline autonomously (Orchestrator) |
 | `/my-tasks` | Show pending tasks for a chosen agent role |
 | `/pipeline-status` | Show the full pipeline state for a project |
+| `/upgrade` | Check for and apply pending schema migrations |
+| `/dashboard` | Open the TaskFlow Dashboard in your browser |
+
+---
+
+## Dashboard
+
+The TaskFlow Dashboard is a local web UI for viewing pipeline progress. It reads directly from the SQLite database and requires no extra dependencies.
+
+```bash
+uv run .taskflow/server/dashboard.py
+```
+
+Or use the slash command:
+
+```
+/dashboard
+```
+
+The dashboard opens at `http://127.0.0.1:8675` and shows:
+
+| Tab | What you see |
+|---|---|
+| **Features** | Pipeline progress bar per feature, test pass/fail counts |
+| **All Tasks** | Every task with step, agent, status, retry count, rejection notes |
+| **Retros & Decisions** | Retrospective summaries, recommendations, decisions, decision artefacts |
+| **Backlog** | Pending feature backlog items with priority |
+
+Auto-refreshes every 30 seconds. Uses only the Python standard library.
 
 ---
 
@@ -433,6 +473,7 @@ The form (`.taskflow/project-brief-form.html`) is a single offline HTML file, no
 | Risks | PM (seeded as initial decision artefacts in steps 10/12) |
 | Release phases | PM (assigns features to cycles) |
 | Timeline & deadline | All reviewers, prioritisation context |
+| Existing project context | Dev Manager (preserve existing agents/MCP); PM (mark completed features as done) |
 
 ---
 
@@ -445,9 +486,10 @@ Phase 1: Initiate
   @TaskFlow Project Initiation Manager (conversational)
         │
         ▼
-Phase 2: Configure (recommended)
+Phase 2: Configure
   @TaskFlow Dev Manager
     Reads brief → queries MCP registry → enriches agent team
+    Configures MCP servers, skills, agent capabilities, and model preferences
         │
         ▼
 Phase 3: Run
@@ -461,7 +503,7 @@ Phase 3: Run
         ├─ Step 5:  Tester writes test specs
         ├─ Step 6:  Test Reviewer approves
         ├─ Step 7:  Builder implements
-        ├─ Step 8:  Tester runs tests ──(fail × 3 → blocked → you decide)
+        ├─ Step 8:  Tester runs tests ──(fail → step 7 fixes → step 8 re-test; × 3 → blocked → you decide)
         │
         ├─ Step 9:  Documenter writes retro
         ├─ Step 10: PM writes decisions
@@ -482,14 +524,12 @@ open-taskflow/
     agents/                          # 9 agent .agent.md files (VS Code)
     skills/                          # Skill directories (shared)
     copilot-instructions.md          # Agent routing + tool reference (VS Code)
-  .claude/
-    agents/                          # 9 subagent .md files (Claude Code)
-    skills -> ../.github/skills      # Symlink — same skills, both clients
-    settings.json                    # PostToolUse audit hook (Claude Code)
   .taskflow/
     server/
       mcp_server.py                  # FastMCP server (all tools)
       init.sql                       # Schema + pipeline seed data
+      migrations/                    # Numbered schema migration files
+      dashboard.py                   # Local web dashboard (no deps)
     project-brief-form.html          # Offline brief form
     project-brief-template.md        # Reference template
     taskflow.db                      # Runtime DB (gitignored, auto-created)
@@ -498,8 +538,6 @@ open-taskflow/
     mcp.json                         # Workspace MCP server definition (VS Code)
     settings.json                    # Skills + hooks locations (VS Code)
     hooks.json                       # SessionStart + PostToolUse hooks (VS Code)
-  .mcp.json                          # MCP server definition (Claude Code)
-  CLAUDE.md                          # Agent routing + tool reference (Claude Code)
   .gitignore
   README.md
 ```
@@ -524,8 +562,9 @@ open-taskflow/
 | `decision_artefacts` | Patterns, gotchas, notes from step 12 |
 | `feature_backlog` | New features queued for future cycles |
 | `tasks` | Pipeline task queue (the engine) |
-| `pipeline_steps` | 13-step workflow definition (seed data) |
+| `pipeline_steps` | Pipeline workflow definition (steps 3–13 seed data) |
 | `team_setup` | Agent team configuration recorded by Dev Manager |
+| `schema_migrations` | Tracks which schema migrations have been applied |
 
 **Brief-derived tables** (populated by `ingest_brief` from the form JSON):
 
@@ -559,3 +598,47 @@ UPDATE tasks SET status = 'done' WHERE id = <task_id>;
 ```
 
 Then use `/pipeline-status` to confirm the updated state.
+
+---
+
+## Upgrading TaskFlow
+
+When you pull a new release of TaskFlow, the database schema may have changed. TaskFlow handles this automatically, but it helps to understand how.
+
+### How it works
+
+1. **On startup**, the MCP server runs `_ensure_db()` (creates tables if they don't exist) then `_run_migrations()` (applies any pending numbered migration files).
+2. **Migrations** are numbered SQL files in `.taskflow/server/migrations/` (e.g. `001_add_cycle_number.sql`). Each runs once and is recorded in the `schema_migrations` table.
+3. **Your data is safe** — migrations add columns or tables; they never drop data. The `taskflow.db` file is gitignored and persists across upgrades.
+
+### After pulling a new release
+
+Simply restart VS Code. The MCP server starts fresh and applies any pending migrations automatically.
+
+You can also run the slash command at any time:
+
+```
+/upgrade
+```
+
+This calls the `upgrade` MCP tool, which checks for pending migrations and applies them. It reports the current schema version and any migrations applied.
+
+### Checking schema version
+
+The `upgrade` tool returns the current schema version and the full migration history. You can also query directly:
+
+```sql
+SELECT * FROM schema_migrations ORDER BY version;
+```
+
+### Writing a migration (contributors)
+
+If you're contributing a schema change to TaskFlow:
+
+1. Create a numbered SQL file in `.taskflow/server/migrations/` (e.g. `003_add_new_column.sql`).
+2. Use idempotent SQL where possible (`ALTER TABLE ... ADD COLUMN` with guards).
+3. Never edit an existing migration file — always add a new one.
+4. Test against both a fresh database and an existing one with data.
+5. Update `init.sql` to include the new table/column for fresh installs.
+
+See `.taskflow/server/migrations/README.md` for the full conventions.

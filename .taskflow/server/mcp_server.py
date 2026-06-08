@@ -7,7 +7,7 @@
 """
 TaskFlow — MCP Server (Phase 1: universal tools only)
 
-DB_PATH is read from the DB_PATH environment variable (set by .mcp.json).
+DB_PATH is read from the DB_PATH environment variable (set by .vscode/mcp.json).
 Schema is initialised automatically on first run via _ensure_db().
 """
 
@@ -32,6 +32,7 @@ DB_PATH: str = os.environ.get(
 )
 
 _INIT_SQL_PATH: pathlib.Path = pathlib.Path(__file__).parent / "init.sql"
+_MIGRATIONS_DIR: pathlib.Path = pathlib.Path(__file__).parent / "migrations"
 
 # ---------------------------------------------------------------------------
 # FastMCP instance
@@ -59,6 +60,83 @@ def _ensure_db() -> None:
     try:
         conn.executescript(sql)
         conn.commit()
+    finally:
+        conn.close()
+
+
+def _run_migrations() -> list[str]:
+    """Apply any pending schema migrations.
+
+    Migrations are numbered SQL files in .taskflow/server/migrations/:
+        001_add_cycle_number.sql
+        002_add_whatever.sql
+
+    Each file is applied inside a transaction. The schema_migrations table
+    tracks which versions have been applied. Migrations run once only.
+
+    Returns a list of applied migration names (empty if already up-to-date).
+    """
+    if not _MIGRATIONS_DIR.is_dir():
+        return []
+
+    conn = _get_conn()
+    try:
+        # Ensure the tracking table exists (idempotent — also in init.sql)
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS schema_migrations ("
+            "  version INTEGER PRIMARY KEY, "
+            "  name TEXT NOT NULL, "
+            "  applied_at TEXT NOT NULL DEFAULT (datetime('now', 'utc'))"
+            ")"
+        )
+        conn.commit()
+
+        applied = {
+            row["version"]
+            for row in conn.execute("SELECT version FROM schema_migrations").fetchall()
+        }
+
+        # Discover migration files: {number}_{name}.sql
+        pending: list[tuple[int, str, pathlib.Path]] = []
+        for path in sorted(_MIGRATIONS_DIR.glob("*.sql")):
+            stem = path.stem  # e.g. "001_add_cycle_number"
+            parts = stem.split("_", 1)
+            if len(parts) != 2 or not parts[0].isdigit():
+                continue  # skip files that don't match the naming convention
+            version = int(parts[0])
+            name = parts[1]
+            if version not in applied:
+                pending.append((version, name, path))
+
+        if not pending:
+            return []
+
+        applied_names: list[str] = []
+        for version, name, path in pending:
+            sql = path.read_text()
+            try:
+                conn.executescript(sql)
+            except sqlite3.OperationalError as e:
+                # "duplicate column name" means init.sql already has this change
+                # (fresh DB). Record the migration as applied and continue.
+                if "duplicate column name" in str(e).lower():
+                    conn.execute(
+                        "INSERT INTO schema_migrations (version, name) VALUES (?, ?)",
+                        (version, name),
+                    )
+                    conn.commit()
+                    applied_names.append(f"{version:03d}_{name}")
+                    continue
+                raise
+            conn.execute(
+                "INSERT INTO schema_migrations (version, name) VALUES (?, ?)",
+                (version, name),
+            )
+            conn.commit()
+            applied_names.append(f"{version:03d}_{name}")
+
+        return applied_names
+
     finally:
         conn.close()
 
@@ -145,10 +223,45 @@ def _brief_context(conn: sqlite3.Connection, project_id: int) -> dict[str, Any]:
 
 # Run on import so the DB is always ready before any tool is called.
 _ensure_db()
+_run_migrations()
 
 # ---------------------------------------------------------------------------
 # Universal tools (all agents)
 # ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def upgrade() -> dict[str, Any]:
+    """Check for and apply pending schema migrations.
+
+    Returns the list of applied migrations (empty if already up-to-date)
+    and the current schema version. Run this after pulling a new release
+    of TaskFlow to ensure your database schema is current.
+
+    Migrations are also applied automatically on server startup, so this
+    tool is mainly useful for manual verification or troubleshooting.
+    """
+    applied = _run_migrations()
+    conn = _get_conn()
+    try:
+        versions = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT version, name, applied_at FROM schema_migrations ORDER BY version"
+            ).fetchall()
+        ]
+        current = conn.execute(
+            "SELECT COALESCE(MAX(version), 0) FROM schema_migrations"
+        ).fetchone()[0]
+    finally:
+        conn.close()
+
+    return {
+        "current_version": current,
+        "applied_now": applied,
+        "all_migrations": versions,
+        "status": "up-to-date" if not applied else "migrations applied",
+    }
 
 
 @mcp.tool()
@@ -1693,6 +1806,52 @@ def ingest_brief(brief_json: str) -> dict[str, Any]:
                     ),
                 )
 
+        # --- existing_project: completed features & tech debt ---
+        existing = data.get("existing_project", {})
+        if existing:
+            # Completed features → brief_features with [Already built] prefix
+            for cf in existing.get("completed_features", []):
+                feature_name = cf.get("feature", "").strip()
+                if feature_name:
+                    status = cf.get("status", "working")
+                    notes = cf.get("notes", "")
+                    desc = f"[Already built — {status}]"
+                    if notes:
+                        desc += f" {notes}"
+                    conn.execute(
+                        """
+                        INSERT INTO brief_features
+                            (project_id, name, description, priority, phase)
+                        VALUES (?,?,?,?,?)
+                        """,
+                        (project_id, feature_name, desc, "Must", "1"),
+                    )
+
+            # Tech debt → brief_features with [Bug]/[Tech debt] prefix
+            priority_map = {
+                "must_fix": "Must",
+                "should_fix": "Should",
+                "nice_to_fix": "Could",
+            }
+            for td in existing.get("tech_debt", []):
+                issue = td.get("issue", "").strip()
+                if issue:
+                    priority = priority_map.get(
+                        td.get("priority", "should_fix"), "Should"
+                    )
+                    notes = td.get("notes", "")
+                    desc = f"[Tech debt] {issue}"
+                    if notes:
+                        desc += f" — {notes}"
+                    conn.execute(
+                        """
+                        INSERT INTO brief_features
+                            (project_id, name, description, priority, phase)
+                        VALUES (?,?,?,?,?)
+                        """,
+                        (project_id, issue, desc, priority, "1"),
+                    )
+
         # Spawn step-3 task
         new_ids = _spawn_tasks(conn, project_id, [3])
         conn.commit()
@@ -2477,16 +2636,37 @@ def submit_test_results(
                 "spawned_task_ids": new_ids,
             }
         else:
-            # Tests failed — retry or block
+            # Tests failed — the builder needs to fix the code before the
+            # tester can re-run.  Spawn step 7 (builder) with failure details
+            # so the builder knows what to fix.  When the builder completes and
+            # its task is approved, step 8 will be spawned automatically (via
+            # step 7's on_approval_spawn = '[8]').
             new_retry = task["retry_count"] + 1
             conn.execute(
                 "UPDATE tasks SET status = 'rejected', completed_at = datetime('now','utc') WHERE id = ?",
                 (task_id,),
             )
 
+            # Build rejection notes from the failed test specs
+            failed_specs = [r for r in results if not int(bool(r["passed"]))]
+            spec_details = []
+            for r in failed_specs:
+                spec = conn.execute(
+                    "SELECT description, expected_result FROM test_specs WHERE id = ?",
+                    (r["test_spec_id"],),
+                ).fetchone()
+                detail = f"• {spec['description'] if spec else 'unknown'} — expected: {spec['expected_result'] if spec else 'unknown'}"
+                if r.get("notes"):
+                    detail += f" — notes: {r['notes']}"
+                spec_details.append(detail)
+            rejection_notes = (
+                f"Tests failed (attempt {new_retry}). "
+                f"The following test specs did not pass:\n" + "\n".join(spec_details)
+            )
+
             if new_retry >= _RETRY_LIMIT:
-                step8 = conn.execute(
-                    "SELECT * FROM pipeline_steps WHERE step_number = 8"
+                step7 = conn.execute(
+                    "SELECT * FROM pipeline_steps WHERE step_number = 7"
                 ).fetchone()
                 conn.execute(
                     """
@@ -2498,9 +2678,9 @@ def submit_test_results(
                     (
                         project_id,
                         feature_id,
-                        step8["id"],
-                        step8["agent_role"],
-                        "Tests failed — retry limit reached",
+                        step7["id"],
+                        step7["agent_role"],
+                        f"Build-fix loop blocked after {_RETRY_LIMIT} test failures.\n{rejection_notes}",
                         new_retry,
                     ),
                 )
@@ -2512,8 +2692,8 @@ def submit_test_results(
                     "retry_count": new_retry,
                 }
             else:
-                step8 = conn.execute(
-                    "SELECT * FROM pipeline_steps WHERE step_number = 8"
+                step7 = conn.execute(
+                    "SELECT * FROM pipeline_steps WHERE step_number = 7"
                 ).fetchone()
                 cur = conn.execute(
                     """
@@ -2525,9 +2705,9 @@ def submit_test_results(
                     (
                         project_id,
                         feature_id,
-                        step8["id"],
-                        step8["agent_role"],
-                        "Tests failed — retry build and test",
+                        step7["id"],
+                        step7["agent_role"],
+                        rejection_notes,
                         new_retry,
                     ),
                 )
@@ -2538,6 +2718,7 @@ def submit_test_results(
                     "created_test_results": created,
                     "result": "retrying",
                     "new_task_id": new_task_id,
+                    "spawned_step": 7,
                     "retry_count": new_retry,
                 }
     finally:

@@ -617,6 +617,7 @@
       <a href="#s-platforms" class="nav-a"><span class="nav-n">8</span> Platforms &amp; Design</a>
       <a href="#s-timeline" class="nav-a"><span class="nav-n">9</span> Timeline &amp; Phases</a>
       <a href="#s-risks" class="nav-a"><span class="nav-n">10</span> Risks</a>
+      <a href="#s-existing" class="nav-a"><span class="nav-n">11</span> Existing Project</a>
       <div class="sb-status" id="sb-status">Not saved yet</div>
     </nav>
 
@@ -1252,6 +1253,145 @@
           </div>
         </section>
 
+        <!-- 11 ── Existing Project (optional) -->
+        <section class="sec" id="s-existing">
+          <div class="sec-hdr">
+            <div class="sec-num">11</div>
+            <div>
+              <h2>Existing Project Context</h2>
+              <p>Complete this section if you are adding TaskFlow to a project that already has code, agents, or
+                infrastructure. Skip it for greenfield projects.</p>
+            </div>
+          </div>
+          <div class="sec-body">
+
+            <div class="field">
+              <label>What has been built so far?</label>
+              <textarea id="f-existing-summary" rows="3"
+                placeholder="e.g. Next.js 14 app with auth, dashboard, and API routes. PostgreSQL database with Prisma ORM. Deployed to Railway."></textarea>
+            </div>
+
+            <div class="field">
+              <label>Tech stack in use</label>
+              <input id="f-existing-tech" type="text"
+                placeholder="e.g. Next.js 14, TypeScript, PostgreSQL, Prisma, Tailwind CSS">
+            </div>
+
+            <div class="field">
+              <label>Existing documentation</label>
+              <input id="f-existing-docs" type="text"
+                placeholder="e.g. README.md, docs/api.md, .github/copilot-instructions.md">
+            </div>
+
+            <div class="field">
+              <label>Test coverage</label>
+              <select id="f-existing-tests">
+                <option value="">— select —</option>
+                <option value="none">None</option>
+                <option value="partial">Partial</option>
+                <option value="good">Good</option>
+                <option value="comprehensive">Comprehensive</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Deployment status</label>
+              <select id="f-existing-deploy">
+                <option value="">— select —</option>
+                <option value="not_deployed">Not deployed</option>
+                <option value="staging">Staging</option>
+                <option value="production">Production</option>
+              </select>
+            </div>
+
+            <h3 style="margin-top:16px;">Existing AI / agent setup</h3>
+            <p style="color:var(--g500);font-size:0.85rem;margin-bottom:8px;">List any existing agent files, skills,
+              instructions, or MCP servers already in the workspace.</p>
+            <table class="dtbl">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Name / Path</th>
+                  <th>Purpose</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tb-existing-agents">
+                <tr>
+                  <td><select>
+                      <option value="agent">Agent (.agent.md)</option>
+                      <option value="skill">Skill (SKILL.md)</option>
+                      <option value="instructions">Instructions (.instructions.md)</option>
+                      <option value="mcp_server">MCP server</option>
+                      <option value="other">Other</option>
+                    </select></td>
+                  <td><input type="text" placeholder="e.g. .github/agents/custom-builder.agent.md"></td>
+                  <td><input type="text" placeholder="e.g. Builds and deploys to Railway"></td>
+                  <td><button type="button" class="btn-rm" onclick="rmRow(this)">✕</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <button type="button" class="btn-add" onclick="addRow('tb-existing-agents', existingAgentRowHTML)">+ Add
+              item</button>
+
+            <h3 style="margin-top:16px;">Completed features</h3>
+            <p style="color:var(--g500);font-size:0.85rem;margin-bottom:8px;">List features that are already built and
+              working. These will be marked as "done" in the pipeline.</p>
+            <table class="dtbl">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th style="width:140px">Status</th>
+                  <th>Notes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tb-completed-features">
+                <tr>
+                  <td><input type="text" placeholder="e.g. User authentication (email + Google OAuth)"></td>
+                  <td><select>
+                      <option value="working">Working</option>
+                      <option value="partial">Partial</option>
+                      <option value="needs_refactor">Needs refactor</option>
+                    </select></td>
+                  <td><input type="text" placeholder="e.g. Uses NextAuth, needs MFA added"></td>
+                  <td><button type="button" class="btn-rm" onclick="rmRow(this)">✕</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <button type="button" class="btn-add" onclick="addRow('tb-completed-features', completedFeatureRowHTML)">+
+              Add feature</button>
+
+            <h3 style="margin-top:16px;">Known issues &amp; technical debt</h3>
+            <p style="color:var(--g500);font-size:0.85rem;margin-bottom:8px;">List known bugs, TODOs, or technical debt
+              that the pipeline should address.</p>
+            <table class="dtbl">
+              <thead>
+                <tr>
+                  <th>Issue</th>
+                  <th style="width:140px">Priority</th>
+                  <th>Notes</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="tb-tech-debt">
+                <tr>
+                  <td><input type="text" placeholder="e.g. Auth module is 800-line monolith"></td>
+                  <td><select>
+                      <option value="must_fix">Must fix</option>
+                      <option value="should_fix">Should fix</option>
+                      <option value="nice_to_fix">Nice to fix</option>
+                    </select></td>
+                  <td><input type="text" placeholder="e.g. Needs splitting into modules"></td>
+                  <td><button type="button" class="btn-rm" onclick="rmRow(this)">✕</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <button type="button" class="btn-add" onclick="addRow('tb-tech-debt', techDebtRowHTML)">+ Add issue</button>
+
+          </div>
+        </section>
+
       </form>
 
       <!-- Footer -->
@@ -1327,6 +1467,24 @@
   <td><select><option value="H">High</option><option value="M" selected>Medium</option><option value="L">Low</option></select></td>
   <td><select><option value="H">High</option><option value="M" selected>Medium</option><option value="L">Low</option></select></td>
   <td><input type="text" placeholder="Mitigation"></td>
+  <td><button type="button" class="btn-rm" onclick="rmRow(this)">✕</button></td>`;
+
+    const existingAgentRowHTML = `
+  <td><select><option value="agent">Agent (.agent.md)</option><option value="skill">Skill (SKILL.md)</option><option value="instructions">Instructions (.instructions.md)</option><option value="mcp_server">MCP server</option><option value="other">Other</option></select></td>
+  <td><input type="text" placeholder="Name or path"></td>
+  <td><input type="text" placeholder="Purpose"></td>
+  <td><button type="button" class="btn-rm" onclick="rmRow(this)">✕</button></td>`;
+
+    const completedFeatureRowHTML = `
+  <td><input type="text" placeholder="Feature name"></td>
+  <td><select><option value="working">Working</option><option value="partial">Partial</option><option value="needs_refactor">Needs refactor</option></select></td>
+  <td><input type="text" placeholder="Notes"></td>
+  <td><button type="button" class="btn-rm" onclick="rmRow(this)">✕</button></td>`;
+
+    const techDebtRowHTML = `
+  <td><input type="text" placeholder="Issue description"></td>
+  <td><select><option value="must_fix">Must fix</option><option value="should_fix">Should fix</option><option value="nice_to_fix">Nice to fix</option></select></td>
+  <td><input type="text" placeholder="Notes"></td>
   <td><button type="button" class="btn-rm" onclick="rmRow(this)">✕</button></td>`;
 
     // ─────────────────────────────────────────────────────────────
@@ -1480,6 +1638,16 @@
           release_phases: tableData('tb-phases', ['phase', 'description', 'target_date']),
         },
         risks: tableData('tb-risks', ['description', 'likelihood', 'impact', 'mitigation']),
+        existing_project: {
+          summary: v('f-existing-summary'),
+          tech_stack: v('f-existing-tech'),
+          documentation: v('f-existing-docs'),
+          test_coverage: v('f-existing-tests'),
+          deployment_status: v('f-existing-deploy'),
+          existing_agents: tableData('tb-existing-agents', ['type', 'name', 'purpose']),
+          completed_features: tableData('tb-completed-features', ['feature', 'status', 'notes']),
+          tech_debt: tableData('tb-tech-debt', ['issue', 'priority', 'notes']),
+        },
       };
     }
 

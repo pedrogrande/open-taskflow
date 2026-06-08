@@ -4,7 +4,7 @@ description: Reviews the completed project brief and configures the agent team f
 argument-hint: 'Optional: project ID or name to configure, or leave blank to select from list'
 tools: ['taskflow/read_brief', 'taskflow/list_projects', 'taskflow/record_team_setup', 'read/readFile', 'edit/editFiles', 'terminal/runInTerminal', 'search/fileSearch', 'vscode/askQuestions', 'vscode/memory']
 user-invocable: true
-model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+model: []
 handoffs:
   - label: Define Features
     agent: TaskFlow Product Manager
@@ -69,7 +69,38 @@ question: "Your brief names Supabase. Add the official Supabase MCP server so ag
 options: ["Yes — add it", "No — skip"]
 ```
 
-### 4. Present a consolidated approval summary
+### 4. Configure model preferences (optional)
+
+Ask the user: *"Do you want to configure per-agent model preferences, or use VS Code's default model?"*
+
+If they want to configure, present the known options and ask the user to confirm which apply to their plan:
+
+**Recommended tier assignments:**
+
+| Agent | Recommended primary | Recommended fallback | Why |
+|-------|-----------------|-----------------|-----|
+| taskflow-orchestrator | Claude Sonnet 4.6 | Claude Haiku 4.5 | Pipeline coordination, exception reasoning |
+| taskflow-builder | Claude Sonnet 4.6 | Claude Haiku 4.5 | Code writing, architecture understanding |
+| taskflow-dev-manager | Claude Sonnet 4.6 | Claude Haiku 4.5 | Research, tooling decisions |
+| taskflow-product-manager | Claude Sonnet 4.6 | Claude Haiku 4.5 | Feature definition from vague brief |
+| taskflow-initiation-manager | Claude Sonnet 4.6 | Claude Haiku 4.5 | Conversational quality, gap detection |
+| taskflow-tester | Claude Sonnet 4.6 | Claude Haiku 4.5 | Spec writing (step 5) needs strong reasoning |
+| taskflow-pm-reviewer | Claude Haiku 4.5 | Claude Sonnet 4.6 | Structured checklist evaluation |
+| taskflow-test-reviewer | Claude Haiku 4.5 | Claude Sonnet 4.6 | Checklist against DoD criteria |
+| taskflow-documenter | Claude Haiku 4.5 | Claude Sonnet 4.6 | Templated retro, follows skill script |
+
+Present the table and ask: *"Are these tiers right for your project and budget? You can override any agent individually, or change the model for a whole tier."*
+
+Collect their preferences. Valid model spec formats for the `model:` YAML frontmatter:
+
+- Single model: `Claude Sonnet 4.6`
+- Array with fallback: `model: [Claude Sonnet 4.6, Claude Haiku 4.5]`
+- Ollama model: `glm-5.1:cloud (ollama)`
+- Anthropic direct: `Claude Sonnet 4.6 (anthropic)`
+
+Record the chosen model(s) for each agent in your working notes before applying.
+
+### 5. Present a consolidated approval summary
 
 Before writing any files or calling `record_team_setup`, print a full summary of all decisions to chat:
 
@@ -104,6 +135,21 @@ Before writing any files or calling `record_team_setup`, print a full summary of
 | … | … |
 (or "None")
 
+**Model configuration:**
+
+| Agent | Primary model | Fallback |
+|-------|--------------|---------|
+| taskflow-orchestrator | … | … |
+| taskflow-builder | … | … |
+| taskflow-dev-manager | … | … |
+| taskflow-product-manager | … | … |
+| taskflow-initiation-manager | … | … |
+| taskflow-tester | … | … |
+| taskflow-pm-reviewer | … | … |
+| taskflow-test-reviewer | … | … |
+| taskflow-documenter | … | … |
+(show "default" if unchanged from the file)
+
 ---
 
 Then use `vscode/askQuestions` to ask for final approval:
@@ -116,9 +162,9 @@ options: ["Approve — apply all changes", "Make changes first"]
 
 If the user requests changes, present individual items again via `vscode/askQuestions` and revise the plan. Do not write any files or call `record_team_setup` until the user approves the full summary.
 
-### 5. Apply confirmed changes
+### 6. Apply confirmed changes
 
-For each item the user confirmed in step 4:
+For each item the user confirmed in step 5:
 
 **Adding an MCP server:**
 
@@ -143,7 +189,27 @@ For each item the user confirmed in step 4:
 2. Place the new agent file in `.github/agents/`
 3. Add it to `copilot-instructions.md` agent routing table
 
-### 6. Record decisions
+**Updating model configuration:**
+
+Edit each agent's YAML frontmatter in `.github/agents/<name>.agent.md`. Replace the `model:` line with the user's chosen models:
+
+```yaml
+# Single model
+model: Claude Sonnet 4.6
+
+# Array with fallback — tried in order, first available wins
+model: [Claude Sonnet 4.6, Claude Haiku 4.5]
+
+# Ollama model
+model: glm-5.1:cloud (ollama)
+
+# Anthropic direct
+model: Claude Sonnet 4.6 (anthropic)
+```
+
+Only edit the agents whose model the user changed from the default. Do not alter any other part of the agent file.
+
+### 7. Record decisions
 
 Call `record_team_setup(project_id, summary, ...)` with:
 
@@ -155,7 +221,7 @@ Call `record_team_setup(project_id, summary, ...)` with:
 
 Also write a concise summary to `/memories/repo/team-setup.md` using `vscode/memory` so other agents can quickly discover what was configured.
 
-### 7. Hand off
+### 8. Hand off
 
 Tell the user what was configured and what they need to do (e.g. restart MCP server, install skills). Then offer the **Define Features** handoff to the Product Manager.
 

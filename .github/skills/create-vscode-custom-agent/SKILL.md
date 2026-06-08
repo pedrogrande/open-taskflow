@@ -38,7 +38,6 @@ Define specialized AI personas with scoped tools, model preferences, handoffs, a
 | Scope | Location | Available to |
 |-------|----------|-------------|
 | Workspace | `.github/agents/*.agent.md` | Everyone in the workspace |
-| Workspace (Claude format) | `.claude/agents/*.md` | Everyone in the workspace |
 | User profile | `~/.copilot/agents/` | You across all workspaces |
 
 VS Code also detects plain `.md` files in `.github/agents/` as custom agents.
@@ -104,6 +103,7 @@ You are in planning mode. Your task is to generate an implementation plan.
 ```
 
 **Body best practices:**
+
 - Start with a clear role definition
 - List rules and constraints explicitly
 - Reference tools by name using `#tool:<tool-name>` syntax
@@ -188,6 +188,7 @@ agents: []
 ```
 
 **Requirements:**
+
 - Include `'agent'` in `tools` when specifying `agents`
 - Self-referential agents (listing themselves) require `chat.subagents.allowInvocationsFromSubagents` enabled
 - Nested subagents have a maximum depth of 5
@@ -311,7 +312,6 @@ This agent can only be invoked as a subagent by other agents.
 | Hooks not running | `chat.useCustomAgentHooks` not enabled | Enable the setting in VS Code |
 | Subagent can't invoke others | Nested subagents disabled | Enable `chat.subagents.allowInvocationsFromSubagents` |
 | Model not found | Model name format wrong | Use format like `GPT-5.2 (copilot)` or `Claude Sonnet 4.5 (copilot)` |
-| Claude format not detected | Wrong file extension | Use `.md` in `.claude/agents/` (not `.agent.md`) |
 | 128 tools limit error | Too many MCP tools enabled | Deselect tools or entire MCP servers in tools picker |
 
 ## Related Resources

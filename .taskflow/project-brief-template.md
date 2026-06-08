@@ -207,7 +207,54 @@ Identify anything that could slow down or derail the project.
 
 ***
 
-## 14. Additional Context
+## 14. Existing Project Context
+
+*Complete this section if you are adding TaskFlow to a project that already has code, documentation, or infrastructure. Skip it if this is a greenfield project.*
+
+### 14a. Current state
+
+| Field | Your Answer |
+|---|---|
+| What has been built so far? (brief summary) | |
+| Tech stack in use (languages, frameworks, databases) | |
+| Existing documentation (README, docs folder, API specs, etc.) | |
+| Existing test coverage (none / partial / good / comprehensive) | |
+| Deployment status (not deployed / staging / production) | |
+
+### 14b. Existing AI / agent setup
+
+*List any existing agent files, skills, instructions, or MCP servers already in the workspace.*
+
+| Type | Name / Path | Purpose |
+|---|---|---|
+| Agent (.agent.md) | | |
+| Skill (SKILL.md) | | |
+| Instructions (.instructions.md) | | |
+| MCP server | | |
+| Other | | |
+
+### 14c. Completed features
+
+*List features that are already built and working. These will be marked as "done" in the pipeline so TaskFlow doesn't re-build them.*
+
+| Feature | Status | Notes |
+|---|---|---|
+| | Working / Partial / Needs refactor | |
+| | Working / Partial / Needs refactor | |
+| | Working / Partial / Needs refactor | |
+
+### 14d. Known issues & technical debt
+
+*List known bugs, TODOs, or technical debt that the pipeline should address.*
+
+| Issue | Priority (Must fix / Should fix / Nice to fix) | Notes |
+|---|---|---|
+| | | |
+| | | |
+
+***
+
+## 15. Additional Context
 
 *Anything else the build team should know that doesn't fit the sections above.*
 

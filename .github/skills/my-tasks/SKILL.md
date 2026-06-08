@@ -12,6 +12,8 @@ disable-model-invocation: true
 1. If the user provided a role in their message, use it. Otherwise ask:
    "Which agent role? Choose from: `product_manager`, `pm_reviewer`, `tester`, `test_reviewer`, `builder`, `documenter`"
 
+   Note: the Dev Manager does not have pipeline tasks — it runs pre-pipeline. To check if team setup was completed, use `/pipeline-status`.
+
 2. Call `read_pending_tasks(agent_role=...)`.
 
 3. If no tasks are returned:

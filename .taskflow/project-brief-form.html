@@ -126,6 +126,27 @@
       color: white;
     }
 
+    .nav-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    .nav-dashboard {
+      font-weight: 600;
+      color: var(--blue);
+    }
+
+    .sb-divider {
+      border: none;
+      border-top: 1px solid var(--g100);
+      margin: 8px 16px;
+    }
+
     .sb-status {
       padding: 14px 16px 0;
       font-size: 11px;
@@ -607,6 +628,8 @@
         <span>TaskFlow</span>
         <h1>Project Brief</h1>
       </div>
+      <a href="/" class="nav-a nav-dashboard"><span class="nav-icon">📊</span> Dashboard</a>
+      <hr class="sb-divider">
       <a href="#s-identity" class="nav-a active"><span class="nav-n">1</span> Identity &amp; Context</a>
       <a href="#s-goals" class="nav-a"><span class="nav-n">2</span> Goals &amp; Metrics</a>
       <a href="#s-users" class="nav-a"><span class="nav-n">3</span> Users &amp; Stakeholders</a>
@@ -1396,10 +1419,14 @@
 
       <!-- Footer -->
       <div class="footer-bar">
-        <p>All sections complete? Click <strong>Generate brief</strong> to download <code>project-brief.json</code>.</p>
+        <p id="footer-msg">All sections complete? Click <strong>Generate brief</strong> to download
+          <code>project-brief.json</code>.
+        </p>
         <div class="footer-btns">
           <button class="btn-sec" onclick="saveDraft()">Save draft</button>
-          <button class="btn-pri" onclick="generate()">Generate brief ↓</button>
+          <button class="btn-pri" id="btn-generate" onclick="generate()">Generate brief ↓</button>
+          <button class="btn-pri" id="btn-submit-api" style="display:none;background:#16a34a;"
+            onclick="submitToAPI()">Submit to TaskFlow →</button>
         </div>
       </div>
 
@@ -1708,6 +1735,94 @@
 
       localStorage.removeItem(DRAFT_KEY);
       setStatus('Brief downloaded ✓');
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  API mode — submit directly to TaskFlow Dashboard
+    // ─────────────────────────────────────────────────────────────
+    const API_MODE = new URLSearchParams(window.location.search).get('mode') === 'api';
+    const DASHBOARD_URL = new URL(window.location.href);
+    DASHBOARD_URL.pathname = '/';
+    DASHBOARD_URL.search = '';
+
+    if (API_MODE) {
+      document.getElementById('btn-generate').style.display = 'none';
+      document.getElementById('btn-submit-api').style.display = '';
+      document.getElementById('footer-msg').innerHTML =
+        'All sections complete? Click <strong>Submit to TaskFlow</strong> to create the project directly.';
+    }
+
+    async function submitToAPI() {
+      const errBanner = document.getElementById('err-banner');
+      if (!validate()) {
+        errBanner.classList.add('show');
+        errBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      errBanner.classList.remove('show');
+
+      const data = serialise();
+      // Flatten the nested structure for the API
+      const payload = {
+        name: data.project_identity.name,
+        brief_text: data.project_identity.problem,
+        organisation: data.project_identity.organisation,
+        industry: data.project_identity.industry,
+        problem: data.project_identity.problem,
+        success_definition: data.project_identity.success_definition,
+        out_of_scope: data.project_identity.out_of_scope,
+        outcomes: data.goals.outcomes,
+        metrics: data.goals.metrics,
+        roles: data.users.roles,
+        stakeholders: data.users.stakeholders,
+        decision_maker_name: data.users.decision_maker.name,
+        decision_maker_contact: data.users.decision_maker.contact,
+        acceptance_testers: data.users.acceptance_testers,
+        features: data.features,
+        workflows: data.workflows,
+        nfrs: Object.entries(data.non_functional)
+          .filter(([_, v]) => v && v.enabled)
+          .map(([type, v]) => ({ nfr_type: type, notes: v.notes || '' })),
+        integrations: data.integrations.systems,
+        phases: data.timeline.release_phases.map(p => ({
+          phase_number: p.phase || '1',
+          description: p.description,
+          target_date: p.target_date,
+        })),
+        risks: data.risks,
+        platforms: data.platforms.targets.join(', '),
+        hosting: data.platforms.hosting,
+        design_source: data.design.source,
+        design_references: data.design.references,
+        brand: data.design.brand,
+        maintenance: data.design.maintenance,
+        deadline_date: data.timeline.deadline.date,
+        deadline_type: data.timeline.deadline.type,
+        deadline_reason: data.timeline.deadline.reason,
+      };
+
+      const btn = document.getElementById('btn-submit-api');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        const resp = await fetch(DASHBOARD_URL.origin + '/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const result = await resp.json();
+        if (result.error) {
+          throw new Error(result.error);
+        }
+        localStorage.removeItem(DRAFT_KEY);
+        // Redirect to dashboard
+        window.location.href = DASHBOARD_URL.origin + '/';
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Submit to TaskFlow →';
+        alert('Failed to submit: ' + err.message);
+      }
     }
 
     // ─────────────────────────────────────────────────────────────

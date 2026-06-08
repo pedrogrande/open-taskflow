@@ -433,7 +433,7 @@ Type `/` in Copilot chat to see all available commands.
 
 ## Dashboard
 
-The TaskFlow Dashboard is a local web UI for viewing pipeline progress. It reads directly from the SQLite database and requires no extra dependencies.
+The TaskFlow Dashboard is a **local control plane** for the pipeline. It reads and writes directly to the SQLite database and requires no extra dependencies.
 
 ```bash
 uv run .taskflow/server/dashboard.py
@@ -445,14 +445,45 @@ Or use the slash command:
 /dashboard
 ```
 
-The dashboard opens at `http://127.0.0.1:8675` and shows:
+The dashboard opens at `http://127.0.0.1:8675` and provides:
 
-| Tab | What you see |
+### Read (GET endpoints)
+
+| Endpoint | Returns |
 |---|---|
-| **Features** | Pipeline progress bar per feature, test pass/fail counts |
-| **All Tasks** | Every task with step, agent, status, retry count, rejection notes |
-| **Retros & Decisions** | Retrospective summaries, recommendations, decisions, decision artefacts |
-| **Backlog** | Pending feature backlog items with priority |
+| `/` | Dashboard HTML with full control UI |
+| `/brief` | Project brief form (add `?mode=api` to submit directly) |
+| `/api/projects` | All projects with task counts |
+| `/api/pipeline/{id}` | Full pipeline state for a project |
+| `/api/questions/{id}` | Agent questions for a project |
+
+### Write (POST endpoints)
+
+| Endpoint | Action |
+|---|---|
+| `POST /api/tasks/{id}/claim` | Claim a pending task |
+| `POST /api/tasks/{id}/approve` | Approve an in-progress task |
+| `POST /api/tasks/{id}/reject` | Reject with notes (body: `{notes: "..."}`) |
+| `POST /api/tasks/{id}/pause` | Pause a task |
+| `POST /api/tasks/{id}/resume` | Resume a paused task |
+| `POST /api/tasks/{id}/reset` | Reset blocked/rejected task to pending |
+| `POST /api/projects/{id}/pause` | Pause a project |
+| `POST /api/projects/{id}/resume` | Resume a paused project |
+| `POST /api/projects` | Create project from brief JSON |
+| `POST /api/questions/{id}/answer` | Answer an agent question |
+
+### Dashboard features
+
+| Feature | Description |
+|---|---|
+| **Task actions** | Claim, Approve, Reject, Pause, Resume, Reset buttons per task |
+| **Project actions** | Pause/Resume project, Run Pipeline button |
+| **Agent invocation** | "▶ Run" buttons open VS Code deep-links to Copilot chat |
+| **Questions tab** | View and answer agent questions with badge count for unanswered |
+| **Welcome screen** | Shown when no projects exist, with onboarding steps |
+| **Brief form** | Served at `/brief`, supports `?mode=api` for direct submission |
+| **Auto-refresh** | Dashboard polls every 30 seconds |
+| **Auto-migration** | Applies pending schema migrations on startup |
 
 Auto-refreshes every 30 seconds. Uses only the Python standard library.
 
@@ -527,10 +558,11 @@ open-taskflow/
   .taskflow/
     server/
       mcp_server.py                  # FastMCP server (all tools)
+      _db_ops.py                     # Shared DB operations (MCP + dashboard)
       init.sql                       # Schema + pipeline seed data
       migrations/                    # Numbered schema migration files
-      dashboard.py                   # Local web dashboard (no deps)
-    project-brief-form.html          # Offline brief form
+      dashboard.py                   # Local web control plane (no deps)
+    project-brief-form.html          # Offline brief form (supports ?mode=api)
     project-brief-template.md        # Reference template
     taskflow.db                      # Runtime DB (gitignored, auto-created)
     audit.log                        # Tool call audit trail (gitignored)

@@ -1,0 +1,64 @@
+<div class="doc-content">
+	<h2>Quick Start</h2>
+
+	<h3>Prerequisites</h3>
+	<ul>
+		<li><a href="https://docs.astral.sh/uv/getting-started/installation/" target="_blank"><code>uv</code></a> — install
+			with <code>brew install uv</code> or <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></li>
+		<li>VS Code 1.99+ with GitHub Copilot (agent mode enabled)</li>
+	</ul>
+
+	<h3>1. Clone into your project</h3>
+	<p>For a new project:</p>
+	<pre><code>git clone https://github.com/pedrogrande/open-taskflow.git my-project
+cd my-project</code></pre>
+	<p>For an existing project, copy these directories into your workspace root:</p>
+	<pre><code>.github/
+.taskflow/
+.vscode/mcp.json
+.vscode/settings.json
+.vscode/hooks.json   # merge with your existing hooks</code></pre>
+
+	<h3>2. Open in VS Code</h3>
+	<p>VS Code detects <code>.vscode/mcp.json</code> on startup and launches the TaskFlow MCP server automatically via
+		<code>uv</code>. You'll see <strong>taskflow</strong> listed under <strong>Configure Tools</strong> (the gear icon
+		in the Copilot chat input bar).</p>
+
+	<h3>3. Add <code>.taskflow/</code> to <code>.gitignore</code></h3>
+	<pre><code>.taskflow/taskflow.db
+.taskflow/audit.log
+.taskflow/server/__pycache__/</code></pre>
+
+	<h3>4. Create a project brief</h3>
+	<p>Open <code>.taskflow/project-brief-form.html</code> in any browser, or use this dashboard's <a href="/brief">New
+			Brief</a> page. Complete all sections and submit.</p>
+
+	<h3>5. Start the pipeline</h3>
+	<p>In VS Code Copilot chat, use the slash command:</p>
+	<pre><code>/start-project</code></pre>
+	<p>Then configure the team:</p>
+	<pre><code>/setup-team</code></pre>
+	<p>And run the pipeline:</p>
+	<pre><code>/run-pipeline</code></pre>
+
+	<h3>Or use the dashboard</h3>
+	<p>You can also manage everything from this dashboard:</p>
+	<div class="card-grid">
+		<div class="info-card">
+			<h3>📝 New Brief</h3>
+			<p>Create a project brief using the form, then submit it directly to TaskFlow.</p>
+		</div>
+		<div class="info-card">
+			<h3>🚀 Run Pipeline</h3>
+			<p>Click "Run Pipeline" on any project to launch the Orchestrator agent in VS Code.</p>
+		</div>
+		<div class="info-card">
+			<h3>✓ Approve / ✗ Reject</h3>
+			<p>Review and approve or reject tasks directly from the dashboard.</p>
+		</div>
+		<div class="info-card">
+			<h3>💬 Answer Questions</h3>
+			<p>When agents need human input, questions appear here for you to answer.</p>
+		</div>
+	</div>
+</div>

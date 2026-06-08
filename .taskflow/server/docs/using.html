@@ -1,0 +1,158 @@
+<div class="doc-content">
+	<h2>Using TaskFlow</h2>
+	<p>TaskFlow has three phases: <strong>Initiate</strong>, <strong>Configure</strong>, and <strong>Run</strong>.</p>
+
+	<h3>1. Initiate: build the project brief</h3>
+	<p>The project brief is the foundation. All agents draw context from it throughout the pipeline. There are two ways to
+		create one:</p>
+
+	<h4>Option A: Project brief form (recommended)</h4>
+	<p>Open <code>.taskflow/project-brief-form.html</code> in any browser, or use the <a href="/brief">New Brief</a> page
+		in this dashboard. Complete all sections: identity, goals, features, workflows, NFRs, integrations, risks, and
+		timeline. Click <strong>Submit to TaskFlow</strong> — the data is ingested directly into the database.</p>
+
+	<h4>Option B: Conversational brief</h4>
+	<p>Use the slash command <code>/start-project</code> in VS Code Copilot chat. The Project Initiation Manager guides
+		you through the brief one question at a time, recording each answer to the database.</p>
+
+	<h3>2. Configure: set up the agent team</h3>
+	<p>Once the brief is ingested, use <code>/setup-team</code>. The Dev Manager reads your brief, extracts your tech
+		stack and integrations, and configures MCP servers, skills, and model preferences for your project.</p>
+
+	<h3>3. Run: the pipeline</h3>
+	<p>Start the full pipeline with <code>/run-pipeline</code>. The Orchestrator works through steps 3–13 one feature at a
+		time. You can also use <code>/my-tasks</code> at any point to see what's pending.</p>
+
+	<h3>The Pipeline (Steps 3–13)</h3>
+	<div class="card scroll-x" style="margin-top:12px;">
+		<table>
+			<tr>
+				<th>Step</th>
+				<th>Agent</th>
+				<th>Output</th>
+				<th>Gate</th>
+			</tr>
+			<tr>
+				<td>3</td>
+				<td>Product Manager</td>
+				<td>Features + DoD</td>
+				<td>→ step 4</td>
+			</tr>
+			<tr>
+				<td>4</td>
+				<td>PM Reviewer</td>
+				<td>Feature approval</td>
+				<td>→ step 5 × N features</td>
+			</tr>
+			<tr>
+				<td>5</td>
+				<td>Tester</td>
+				<td>Test specs</td>
+				<td>→ step 6</td>
+			</tr>
+			<tr>
+				<td>6</td>
+				<td>Test Reviewer</td>
+				<td>Test spec approval</td>
+				<td>→ step 7</td>
+			</tr>
+			<tr>
+				<td>7</td>
+				<td>Builder</td>
+				<td>Build report</td>
+				<td>→ step 8</td>
+			</tr>
+			<tr>
+				<td>8</td>
+				<td>Tester</td>
+				<td>Test results</td>
+				<td>fail → step 7; pass → step 9</td>
+			</tr>
+			<tr>
+				<td>9</td>
+				<td>Documenter</td>
+				<td>Retro + recommendations</td>
+				<td>auto → step 10</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>Product Manager</td>
+				<td>Decisions</td>
+				<td>→ step 11</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>PM Reviewer</td>
+				<td>Decision approval</td>
+				<td>→ step 12</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>Product Manager</td>
+				<td>Decision artefacts</td>
+				<td>→ step 13</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>PM Reviewer</td>
+				<td>Final verification</td>
+				<td>→ step 3 (next cycle)</td>
+			</tr>
+		</table>
+	</div>
+
+	<h3>Dashboard Controls</h3>
+	<p>This dashboard is your control plane for the pipeline. Here's what you can do:</p>
+	<ul>
+		<li><strong>Claim</strong> — Mark a pending task as in-progress</li>
+		<li><strong>Approve ✓</strong> — Mark an in-progress task as done and spawn the next step(s)</li>
+		<li><strong>Reject ✗</strong> — Reject a task with feedback; re-creates the worker task</li>
+		<li><strong>Pause ⏸</strong> — Pause a task or project; paused tasks are skipped by agents</li>
+		<li><strong>Resume ▶</strong> — Resume a paused task or project</li>
+		<li><strong>Reset ↻</strong> — Reset a blocked or rejected task to pending (retry_count = 0)</li>
+		<li><strong>Run ▶</strong> — Open VS Code with the appropriate agent pre-filled for this task</li>
+		<li><strong>Answer questions</strong> — When agents need human input, answer directly from the Questions tab</li>
+	</ul>
+
+	<h3>Slash Commands</h3>
+	<div class="card scroll-x" style="margin-top:12px;">
+		<table>
+			<tr>
+				<th>Command</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td><code>/start-project</code></td>
+				<td>Start a new project (brief ingestion)</td>
+			</tr>
+			<tr>
+				<td><code>/setup-team</code></td>
+				<td>Configure the agent team for your tech stack</td>
+			</tr>
+			<tr>
+				<td><code>/run-pipeline</code></td>
+				<td>Run the full pipeline autonomously</td>
+			</tr>
+			<tr>
+				<td><code>/my-tasks</code></td>
+				<td>Show pending tasks for any agent role</td>
+			</tr>
+			<tr>
+				<td><code>/pipeline-status</code></td>
+				<td>Show current pipeline state</td>
+			</tr>
+			<tr>
+				<td><code>/dashboard</code></td>
+				<td>Open this dashboard</td>
+			</tr>
+			<tr>
+				<td><code>/onboard</code></td>
+				<td>Onboard an existing project</td>
+			</tr>
+		</table>
+	</div>
+
+	<h3>Adding TaskFlow to an existing project</h3>
+	<p>If you already have a codebase, use <code>/onboard</code> to scan your workspace, detect existing agents, skills,
+		MCP servers, and tech stack, then guide you through creating a brief that captures what's already built.</p>
+</div>

@@ -123,6 +123,22 @@ The Dev Manager is the default next step after brief finalisation. Skipping it m
 | `approve_task(task_id, notes?)` | Approve task; cascades next step(s) |
 | `reject_task(task_id, notes)` | Reject task; re-creates worker task with feedback |
 
+### Pause/resume (all agents)
+
+| Tool | Purpose |
+|---|---|
+| `pause_task(task_id)` | Pause a pending/in_progress task; agents skip it |
+| `resume_task(task_id)` | Resume a paused task back to pending |
+| `pause_project(project_id)` | Pause a project; no new task claims while paused |
+| `resume_project(project_id)` | Resume a paused project back to active |
+
+### Agent questions (human-in-the-loop)
+
+| Tool | Purpose |
+|---|---|
+| `ask_human(project_id, question, options?, context?, task_id?)` | Post a question for the human; returns question ID |
+| `read_answer(question_id)` | Check if the human answered; poll until answered |
+
 ---
 
 ## Rejection and retry rules
@@ -167,6 +183,47 @@ After calling `read_task_context`, check `step_number` and invoke the matching s
 | `pipeline-status` | `/pipeline-status` slash command |
 | `dashboard` | `/dashboard` slash command |
 | `upgrade` | `/upgrade` slash command |
+
+---
+
+## Dashboard control plane
+
+The TaskFlow Dashboard (`uv run .taskflow/server/dashboard.py`) is a local web UI that serves as a **control plane** for the pipeline. It provides both read and write operations.
+
+### Read endpoints (GET)
+
+| Endpoint | Returns |
+|---|---|
+| `/` | Dashboard HTML with control UI |
+| `/brief` | Project brief form (add `?mode=api` to submit directly) |
+| `/api/projects` | All projects with task counts |
+| `/api/pipeline/{id}` | Full pipeline state for a project |
+| `/api/questions/{id}` | Agent questions for a project |
+
+### Write endpoints (POST)
+
+| Endpoint | Action |
+|---|---|
+| `POST /api/tasks/{id}/claim` | Claim a pending task |
+| `POST /api/tasks/{id}/approve` | Approve an in-progress task |
+| `POST /api/tasks/{id}/reject` | Reject with notes (body: `{notes: "..."}`) |
+| `POST /api/tasks/{id}/pause` | Pause a task |
+| `POST /api/tasks/{id}/resume` | Resume a paused task |
+| `POST /api/tasks/{id}/reset` | Reset blocked/rejected task to pending |
+| `POST /api/projects/{id}/pause` | Pause a project |
+| `POST /api/projects/{id}/resume` | Resume a paused project |
+| `POST /api/projects` | Create project from brief JSON |
+| `POST /api/questions/{id}/answer` | Answer an agent question (body: `{answer: "..."}`) |
+
+### Dashboard features
+
+- **Task actions**: Claim, Approve, Reject, Pause, Resume, Reset buttons per task
+- **Project actions**: Pause/Resume project, Run Pipeline button
+- **Agent invocation**: "▶ Run" buttons open VS Code deep-links to Copilot chat
+- **Questions tab**: View and answer agent questions with badge count for unanswered
+- **Welcome screen**: Shown when no projects exist, with onboarding steps
+- **Brief form**: Served at `/brief`, supports `?mode=api` for direct submission
+- **Auto-refresh**: Dashboard polls every 30 seconds
 
 ---
 

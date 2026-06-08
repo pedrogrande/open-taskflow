@@ -4,11 +4,11 @@
 # dependencies = []
 # ///
 """
-TaskFlow Dashboard — a local web UI for viewing pipeline progress.
+TaskFlow Dashboard — a local control plane for the agentic development pipeline.
 
-Starts a lightweight HTTP server that serves a dashboard page and a JSON API
-backed by the TaskFlow SQLite database. No external dependencies required
-(uses only the Python standard library).
+Serves a web UI with read/write API endpoints backed by the TaskFlow SQLite
+database. Supports task/project pause/resume, approval/rejection, agent
+question answering, and agent invocation via VS Code deep-links.
 
 Usage:
     uv run .taskflow/server/dashboard.py          # uses default DB path
@@ -23,6 +23,8 @@ import json
 import os
 import pathlib
 import sqlite3
+import sys
+import urllib.parse
 import webbrowser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
@@ -37,6 +39,8 @@ DB_PATH: str = os.environ.get(
 
 PORT = int(os.environ.get("DASHBOARD_PORT", "8675"))
 
+BRIEF_FORM_PATH = str(pathlib.Path(__file__).parent.parent / "project-brief-form.html")
+
 # ---------------------------------------------------------------------------
 # Database helpers
 # ---------------------------------------------------------------------------
@@ -46,6 +50,7 @@ def _get_conn() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
     return conn
 
 
@@ -77,7 +82,9 @@ def api_projects() -> list[dict]:
                     (SELECT COUNT(*) FROM tasks t JOIN pipeline_steps ps ON ps.id = t.step_id
                      WHERE t.project_id = p.id AND t.status = 'blocked') AS blocked_count,
                     (SELECT COUNT(*) FROM tasks t JOIN pipeline_steps ps ON ps.id = t.step_id
-                     WHERE t.project_id = p.id AND t.status = 'rejected') AS rejected_count
+                     WHERE t.project_id = p.id AND t.status = 'rejected') AS rejected_count,
+                    (SELECT COUNT(*) FROM tasks t JOIN pipeline_steps ps ON ps.id = t.step_id
+                     WHERE t.project_id = p.id AND t.status = 'paused') AS paused_count
                 FROM projects p
                 ORDER BY p.created_at DESC
                 """).fetchall())
@@ -215,6 +222,17 @@ def api_pipeline_status(project_id: int) -> dict:
             ).fetchall()
         )
 
+        # Agent questions (may not exist if migrations not yet applied)
+        try:
+            questions = _rows_to_list(
+                conn.execute(
+                    "SELECT * FROM agent_questions WHERE project_id = ? ORDER BY created_at DESC",
+                    (project_id,),
+                ).fetchall()
+            )
+        except sqlite3.OperationalError:
+            questions = []
+
         # Schema version
         schema_version = conn.execute(
             "SELECT COALESCE(MAX(version), 0) FROM schema_migrations"
@@ -230,431 +248,433 @@ def api_pipeline_status(project_id: int) -> dict:
             "artefacts": artefacts,
             "backlog": backlog,
             "builds": builds,
+            "questions": questions,
             "schema_version": schema_version,
         }
     finally:
         conn.close()
 
 
+def api_questions(project_id: int) -> list[dict]:
+    """Return all agent questions for a project."""
+    conn = _get_conn()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM agent_questions WHERE project_id = ? ORDER BY created_at DESC",
+            (project_id,),
+        ).fetchall()
+        return _rows_to_list(rows)
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------------------
-# HTML dashboard
+# Write API endpoints
 # ---------------------------------------------------------------------------
 
-DASHBOARD_HTML = r"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TaskFlow Dashboard</title>
-<style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --border: #30363d;
-    --text: #e6edf3;
-    --text-muted: #8b949e;
-    --accent: #58a6ff;
-    --green: #3fb950;
-    --yellow: #d29922;
-    --red: #f85149;
-    --purple: #bc8cff;
-    --orange: #db6d28;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.5;
-    padding: 24px;
-  }
-  h1 { font-size: 1.5rem; margin-bottom: 16px; }
-  h2 { font-size: 1.2rem; margin: 24px 0 12px; color: var(--accent); }
-  h3 { font-size: 1rem; margin: 16px 0 8px; }
-  .header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-  .header img { height: 32px; }
-  .header span { color: var(--text-muted); font-size: 0.85rem; }
 
-  /* Project selector */
-  .project-selector { margin-bottom: 24px; }
-  .project-selector select {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 0.9rem;
-    min-width: 300px;
-  }
+def api_claim_task(task_id: int) -> dict:
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if row is None:
+            return {"error": f"Task {task_id} not found"}
+        if row["status"] != "pending":
+            return {
+                "error": f"Task {task_id} is '{row['status']}', must be 'pending' to claim"
+            }
+        conn.execute("UPDATE tasks SET status = 'in_progress' WHERE id = ?", (task_id,))
+        conn.commit()
+        updated = conn.execute(
+            "SELECT * FROM tasks WHERE id = ?", (task_id,)
+        ).fetchone()
+        return _row_to_dict(updated)
+    finally:
+        conn.close()
 
-  /* Cards */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
-  }
-  .stat-card .number { font-size: 2rem; font-weight: 700; }
-  .stat-card .label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
-  /* Status badges */
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-  .badge-done { background: rgba(63,185,80,0.15); color: var(--green); }
-  .badge-in_progress { background: rgba(210,153,34,0.15); color: var(--yellow); }
-  .badge-pending { background: rgba(139,148,158,0.15); color: var(--text-muted); }
-  .badge-blocked { background: rgba(248,81,73,0.15); color: var(--red); }
-  .badge-rejected { background: rgba(248,81,73,0.15); color: var(--red); }
+def api_approve_task(task_id: int, notes: str | None = None) -> dict:
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT t.*, ps.step_number, ps.on_approval_spawn FROM tasks t JOIN pipeline_steps ps ON ps.id = t.step_id WHERE t.id = ?",
+            (task_id,),
+        ).fetchone()
+        if row is None:
+            return {"error": f"Task {task_id} not found"}
+        if row["status"] != "in_progress":
+            return {
+                "error": f"Task {task_id} is '{row['status']}', must be 'in_progress' to approve"
+            }
 
-  /* Tables */
-  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  th { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
-  td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
-  tr:hover td { background: rgba(88,166,255,0.04); }
+        conn.execute("UPDATE tasks SET status = 'done' WHERE id = ?", (task_id,))
 
-  /* Pipeline progress bar */
-  .pipeline-bar { display: flex; gap: 2px; margin: 12px 0; }
-  .pipeline-step {
-    flex: 1;
-    padding: 6px 4px;
-    text-align: center;
-    font-size: 0.7rem;
-    border-radius: 4px;
-    background: var(--border);
-    color: var(--text-muted);
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .pipeline-step.done { background: rgba(63,185,80,0.25); color: var(--green); }
-  .pipeline-step.in_progress { background: rgba(210,153,34,0.25); color: var(--yellow); }
-  .pipeline-step.blocked { background: rgba(248,81,73,0.25); color: var(--red); }
+        # Spawn next tasks based on on_approval_spawn
+        spawn = row["on_approval_spawn"]
+        if spawn:
+            try:
+                spawn_list = json.loads(spawn) if isinstance(spawn, str) else spawn
+            except (json.JSONDecodeError, TypeError):
+                spawn_list = []
 
-  /* Feature cards */
-  .feature-card { margin-bottom: 16px; }
-  .feature-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .feature-title { font-weight: 600; }
+            for step_id in spawn_list:
+                step = conn.execute(
+                    "SELECT * FROM pipeline_steps WHERE id = ?", (step_id,)
+                ).fetchone()
+                if step:
+                    conn.execute(
+                        """INSERT INTO tasks (project_id, feature_id, step_id, agent_role, status, retry_count)
+                           VALUES (?, ?, ?, ?, 'pending', 0)""",
+                        (
+                            row["project_id"],
+                            row["feature_id"],
+                            step_id,
+                            step["agent_role"],
+                        ),
+                    )
+        conn.commit()
+        return {"ok": True, "task_id": task_id, "notes": notes}
+    finally:
+        conn.close()
 
-  /* Tabs */
-  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-  .tab {
-    padding: 8px 16px;
-    cursor: pointer;
-    color: var(--text-muted);
-    border-bottom: 2px solid transparent;
-    font-size: 0.85rem;
-  }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
 
-  /* Artefact types */
-  .artefact-pattern { color: var(--green); }
-  .artefact-gotcha { color: var(--red); }
-  .artefact-note { color: var(--accent); }
-  .artefact-constraint { color: var(--orange); }
+def api_reject_task(task_id: int, notes: str) -> dict:
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT t.*, ps.step_number FROM tasks t JOIN pipeline_steps ps ON ps.id = t.step_id WHERE t.id = ?",
+            (task_id,),
+        ).fetchone()
+        if row is None:
+            return {"error": f"Task {task_id} not found"}
+        if row["status"] not in ("in_progress", "pending"):
+            return {"error": f"Task {task_id} is '{row['status']}', cannot reject"}
 
-  /* Empty state */
-  .empty { color: var(--text-muted); font-style: italic; padding: 16px 0; }
+        new_retry = row["retry_count"] + 1
+        if new_retry >= 3:
+            conn.execute("UPDATE tasks SET status = 'blocked' WHERE id = ?", (task_id,))
+            conn.commit()
+            return {
+                "ok": True,
+                "task_id": task_id,
+                "status": "blocked",
+                "reason": "retry limit reached",
+            }
 
-  /* Auto-refresh */
-  .refresh-info { font-size: 0.75rem; color: var(--text-muted); float: right; }
+        # For reviewer steps (2,4,6,11,13), re-create the preceding worker step
+        reviewer_steps = {2, 4, 6, 11, 13}
+        if row["step_number"] in reviewer_steps:
+            prev_step = conn.execute(
+                "SELECT * FROM pipeline_steps WHERE step_number = ?",
+                (row["step_number"] - 1,),
+            ).fetchone()
+        else:
+            prev_step = conn.execute(
+                "SELECT * FROM pipeline_steps WHERE id = ?", (row["step_id"],)
+            ).fetchone()
 
-  /* Scrollable */
-  .scroll-x { overflow-x: auto; }
-</style>
-</head>
-<body>
+        conn.execute("UPDATE tasks SET status = 'rejected' WHERE id = ?", (task_id,))
 
-<div class="header">
-  <h1>📋 TaskFlow Dashboard</h1>
-  <span class="refresh-info" id="refresh-info"></span>
-</div>
+        if prev_step:
+            conn.execute(
+                """INSERT INTO tasks (project_id, feature_id, step_id, agent_role, status, retry_count, rejection_notes)
+                   VALUES (?, ?, ?, ?, 'pending', ?, ?)""",
+                (
+                    row["project_id"],
+                    row["feature_id"],
+                    prev_step["id"],
+                    prev_step["agent_role"],
+                    new_retry,
+                    notes,
+                ),
+            )
 
-<div class="project-selector">
-  <label for="project-select">Project: </label>
-  <select id="project-select"><option value="">Loading...</option></select>
-</div>
+        conn.commit()
+        return {"ok": True, "task_id": task_id, "retry_count": new_retry}
+    finally:
+        conn.close()
 
-<div id="dashboard-content">
-  <p class="empty">Select a project to view its pipeline status.</p>
-</div>
 
-<script>
-const API = '';
-let currentProjectId = null;
-let refreshTimer = null;
+def api_pause_task(task_id: int) -> dict:
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if row is None:
+            return {"error": f"Task {task_id} not found"}
+        if row["status"] not in ("pending", "in_progress"):
+            return {"error": f"Task {task_id} is '{row['status']}', cannot pause"}
+        conn.execute("UPDATE tasks SET status = 'paused' WHERE id = ?", (task_id,))
+        conn.commit()
+        return {"ok": True, "task_id": task_id, "status": "paused"}
+    finally:
+        conn.close()
 
-// --- API calls ---
-async function fetchJSON(url) {
-  const r = await fetch(url);
-  return r.json();
-}
 
-async function loadProjects() {
-  const projects = await fetchJSON(API + '/api/projects');
-  const sel = document.getElementById('project-select');
-  sel.innerHTML = '';
-  if (projects.length === 0) {
-    sel.innerHTML = '<option value="">No projects yet</option>';
-    return;
-  }
-  projects.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = p.name + ' — ' + taskSummary(p);
-    sel.appendChild(opt);
-  });
-  // Auto-select first
-  sel.value = projects[0].id;
-  sel.dispatchEvent(new Event('change'));
-}
+def api_resume_task(task_id: int) -> dict:
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if row is None:
+            return {"error": f"Task {task_id} not found"}
+        if row["status"] != "paused":
+            return {
+                "error": f"Task {task_id} is '{row['status']}', must be 'paused' to resume"
+            }
+        conn.execute("UPDATE tasks SET status = 'pending' WHERE id = ?", (task_id,))
+        conn.commit()
+        return {"ok": True, "task_id": task_id, "status": "pending"}
+    finally:
+        conn.close()
 
-function taskSummary(p) {
-  const parts = [];
-  if (p.done_count) parts.push(p.done_count + ' done');
-  if (p.in_progress_count) parts.push(p.in_progress_count + ' active');
-  if (p.pending_count) parts.push(p.pending_count + ' pending');
-  if (p.blocked_count) parts.push(p.blocked_count + ' blocked');
-  return parts.length ? '(' + parts.join(', ') + ')' : '(no tasks)';
-}
 
-async function loadDashboard(projectId) {
-  currentProjectId = projectId;
-  if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => loadDashboard(currentProjectId), 30000);
+def api_reset_task(task_id: int) -> dict:
+    """Reset a blocked task back to pending with retry_count = 0."""
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if row is None:
+            return {"error": f"Task {task_id} not found"}
+        if row["status"] not in ("blocked", "rejected"):
+            return {
+                "error": f"Task {task_id} is '{row['status']}', can only reset blocked/rejected"
+            }
+        conn.execute(
+            "UPDATE tasks SET status = 'pending', retry_count = 0, rejection_notes = NULL WHERE id = ?",
+            (task_id,),
+        )
+        conn.commit()
+        return {"ok": True, "task_id": task_id, "status": "pending"}
+    finally:
+        conn.close()
 
-  const data = await fetchJSON(API + '/api/pipeline/' + projectId);
-  if (data.error) {
-    document.getElementById('dashboard-content').innerHTML = '<p class="empty">' + data.error + '</p>';
-    return;
-  }
-  renderDashboard(data);
-  document.getElementById('refresh-info').textContent = 'Auto-refreshes every 30s · Schema v' + data.schema_version;
-}
 
-// --- Rendering ---
-function renderDashboard(data) {
-  const el = document.getElementById('dashboard-content');
-  const p = data.project;
-  const tasks = data.tasks;
+def api_pause_project(project_id: int) -> dict:
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT * FROM projects WHERE id = ?", (project_id,)
+        ).fetchone()
+        if row is None:
+            return {"error": f"Project {project_id} not found"}
+        if row["status"] != "active":
+            return {
+                "error": f"Project {project_id} is '{row['status']}', must be 'active' to pause"
+            }
+        conn.execute(
+            "UPDATE projects SET status = 'paused' WHERE id = ?", (project_id,)
+        )
+        conn.commit()
+        return {"ok": True, "project_id": project_id, "status": "paused"}
+    finally:
+        conn.close()
 
-  // Stats
-  const done = tasks.filter(t => t.status === 'done').length;
-  const active = tasks.filter(t => t.status === 'in_progress').length;
-  const pending = tasks.filter(t => t.status === 'pending').length;
-  const blocked = tasks.filter(t => t.status === 'blocked').length;
-  const rejected = tasks.filter(t => t.status === 'rejected').length;
 
-  let html = '';
+def api_resume_project(project_id: int) -> dict:
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT * FROM projects WHERE id = ?", (project_id,)
+        ).fetchone()
+        if row is None:
+            return {"error": f"Project {project_id} not found"}
+        if row["status"] != "paused":
+            return {
+                "error": f"Project {project_id} is '{row['status']}', must be 'paused' to resume"
+            }
+        conn.execute(
+            "UPDATE projects SET status = 'active' WHERE id = ?", (project_id,)
+        )
+        conn.commit()
+        return {"ok": True, "project_id": project_id, "status": "active"}
+    finally:
+        conn.close()
 
-  // Stats cards
-  html += '<div class="card-grid">';
-  html += statCard(done, 'Done', '--green');
-  html += statCard(active, 'In Progress', '--yellow');
-  html += statCard(pending, 'Pending', '--text-muted');
-  html += statCard(blocked, 'Blocked', '--red');
-  html += '</div>';
 
-  // Tabs
-  html += '<div class="tabs">';
-  html += tab('features', 'Features');
-  html += tab('tasks', 'All Tasks');
-  html += tab('retros', 'Retros & Decisions');
-  html += tab('backlog', 'Backlog');
-  html += '</div>';
+def api_answer_question(question_id: int, answer: str) -> dict:
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT * FROM agent_questions WHERE id = ?", (question_id,)
+        ).fetchone()
+        if row is None:
+            return {"error": f"Question {question_id} not found"}
+        if row["answer"] is not None:
+            return {"error": f"Question {question_id} already answered"}
+        conn.execute(
+            "UPDATE agent_questions SET answer = ?, answered_at = datetime('now') WHERE id = ?",
+            (answer, question_id),
+        )
+        conn.commit()
+        updated = conn.execute(
+            "SELECT * FROM agent_questions WHERE id = ?", (question_id,)
+        ).fetchone()
+        return _row_to_dict(updated)
+    finally:
+        conn.close()
 
-  // Features tab
-  html += '<div class="tab-content active" id="tab-features">';
-  if (data.features.length === 0) {
-    html += '<p class="empty">No features defined yet.</p>';
-  } else {
-    data.features.forEach(f => {
-      const fTasks = tasks.filter(t => t.feature_id === f.id);
-      const fDone = fTasks.filter(t => t.status === 'done').length;
-      const fTotal = fTasks.length;
-      html += '<div class="card feature-card">';
-      html += '<div class="feature-header">';
-      html += '<span class="feature-title">' + esc(f.title) + '</span>';
-      html += '<span style="color:var(--text-muted);font-size:0.8rem;">#' + f.id + '</span>';
-      html += '</div>';
-      // Pipeline bar
-      html += '<div class="pipeline-bar">';
-      [3,4,5,6,7,8,9,10,11,12,13].forEach(step => {
-        const stepTask = fTasks.find(t => t.step_number === step);
-        let cls = '';
-        let label = step;
-        if (stepTask) {
-          cls = stepTask.status === 'done' ? 'done' : stepTask.status === 'in_progress' ? 'in_progress' : stepTask.status === 'blocked' ? 'blocked' : '';
-          label = stepTask.step_name || step;
-        }
-        html += '<div class="pipeline-step ' + cls + '" title="' + (stepTask ? stepTask.step_name + ' (' + stepTask.status + ')' : 'Step ' + step + ' (not started)') + '">' + label + '</div>';
-      });
-      html += '</div>';
-      // Test results summary
-      if (f.spec_count > 0) {
-        html += '<div style="font-size:0.8rem;color:var(--text-muted);">Tests: ';
-        html += '<span style="color:var(--green);">' + f.passed_count + ' passed</span>';
-        if (f.failed_count > 0) html += ' · <span style="color:var(--red);">' + f.failed_count + ' failed</span>';
-        html += ' / ' + f.spec_count + ' total</div>';
-      }
-      html += '</div>';
-    });
-  }
-  html += '</div>';
 
-  // Tasks tab
-  html += '<div class="tab-content" id="tab-tasks">';
-  if (tasks.length === 0) {
-    html += '<p class="empty">No tasks yet.</p>';
-  } else {
-    html += '<div class="card scroll-x"><table>';
-    html += '<tr><th>ID</th><th>Step</th><th>Feature</th><th>Agent</th><th>Status</th><th>Retry</th><th>Notes</th><th>Created</th></tr>';
-    tasks.forEach(t => {
-      const feature = data.features.find(f => f.id === t.feature_id);
-      html += '<tr>';
-      html += '<td>' + t.id + '</td>';
-      html += '<td>' + t.step_number + '. ' + esc(t.step_name) + '</td>';
-      html += '<td>' + (feature ? esc(feature.title) : '—') + '</td>';
-      html += '<td>' + t.agent_role + '</td>';
-      html += '<td><span class="badge badge-' + t.status + '">' + t.status + '</span></td>';
-      html += '<td>' + t.retry_count + '</td>';
-      html += '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(t.rejection_notes || '') + '">' + esc(t.rejection_notes || '') + '</td>';
-      html += '<td style="white-space:nowrap;">' + (t.created_at || '').slice(0, 16) + '</td>';
-      html += '</tr>';
-    });
-    html += '</table></div>';
-  }
-  html += '</div>';
+def api_create_project(data: dict) -> dict:
+    """Create a project from brief JSON (API mode from brief form)."""
+    conn = _get_conn()
+    try:
+        name = data.get("name", "Untitled Project")
+        brief_text = data.get("brief_text", data.get("problem", ""))
 
-  // Retros & Decisions tab
-  html += '<div class="tab-content" id="tab-retros">';
-  if (data.retros.length === 0 && data.decisions.length === 0 && data.artefacts.length === 0) {
-    html += '<p class="empty">No retros or decisions yet.</p>';
-  } else {
-    // Retros
-    if (data.retros.length > 0) {
-      html += '<h3>Retrospectives</h3>';
-      data.retros.forEach(r => {
-        html += '<div class="card">';
-        html += '<div style="font-weight:600;margin-bottom:4px;">' + esc(r.feature_title) + '</div>';
-        html += '<div style="font-size:0.85rem;white-space:pre-wrap;">' + esc(r.summary) + '</div>';
-        html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">' + (r.created_at || '').slice(0, 16) + '</div>';
-        html += '</div>';
-      });
-    }
-    // Recommendations
-    if (data.recommendations.length > 0) {
-      html += '<h3>Recommendations</h3>';
-      html += '<div class="card scroll-x"><table>';
-      html += '<tr><th>ID</th><th>Feature</th><th>Type</th><th>Description</th></tr>';
-      data.recommendations.forEach(r => {
-        html += '<tr><td>' + r.id + '</td><td>' + esc(r.feature_title) + '</td><td>' + esc(r.recommendation_type) + '</td><td>' + esc(r.description) + '</td></tr>';
-      });
-      html += '</table></div>';
-    }
-    // Decisions
-    if (data.decisions.length > 0) {
-      html += '<h3>Decisions</h3>';
-      html += '<div class="card scroll-x"><table>';
-      html += '<tr><th>ID</th><th>Feature</th><th>Decision</th><th>Rationale</th></tr>';
-      data.decisions.forEach(d => {
-        html += '<tr><td>' + d.id + '</td><td>' + esc(d.feature_title) + '</td><td>' + esc(d.decision) + '</td><td>' + esc(d.rationale || '') + '</td></tr>';
-      });
-      html += '</table></div>';
-    }
-    // Decision artefacts
-    if (data.artefacts.length > 0) {
-      html += '<h3>Decision Artefacts</h3>';
-      data.artefacts.forEach(a => {
-        const typeClass = 'artefact-' + a.artefact_type;
-        html += '<div class="card">';
-        html += '<span class="' + typeClass + '" style="font-weight:600;text-transform:uppercase;font-size:0.75rem;">' + esc(a.artefact_type) + '</span> ';
-        html += '<span style="font-weight:600;">' + esc(a.title) + '</span>';
-        html += '<div style="font-size:0.85rem;margin-top:4px;white-space:pre-wrap;">' + esc(a.content) + '</div>';
-        html += '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">' + esc(a.feature_title || '') + ' · ' + (a.created_at || '').slice(0, 16) + '</div>';
-        html += '</div>';
-      });
-    }
-  }
-  html += '</div>';
+        cur = conn.execute(
+            "INSERT INTO projects (name, brief_text, status) VALUES (?, ?, 'active')",
+            (name, brief_text),
+        )
+        project_id = cur.lastrowid
 
-  // Backlog tab
-  html += '<div class="tab-content" id="tab-backlog">';
-  if (data.backlog.length === 0) {
-    html += '<p class="empty">No backlog items.</p>';
-  } else {
-    html += '<div class="card scroll-x"><table>';
-    html += '<tr><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Description</th></tr>';
-    data.backlog.forEach(b => {
-      html += '<tr><td>' + b.id + '</td><td>' + esc(b.title) + '</td>';
-      html += '<td><span class="badge badge-' + b.status + '">' + b.status + '</span></td>';
-      html += '<td>' + b.priority + '</td><td>' + esc(b.description || '') + '</td></tr>';
-    });
-    html += '</table></div>';
-  }
-  html += '</div>';
+        # If full brief data provided, populate brief tables
+        if "outcomes" in data:
+            for o in data["outcomes"]:
+                conn.execute(
+                    "INSERT INTO project_outcomes (project_id, outcome) VALUES (?, ?)",
+                    (project_id, o.get("outcome", str(o))),
+                )
+        if "metrics" in data:
+            for m in data["metrics"]:
+                conn.execute(
+                    "INSERT INTO success_metrics (project_id, metric, current_state, target, how_measured) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        project_id,
+                        m.get("metric", ""),
+                        m.get("current_state", ""),
+                        m.get("target", ""),
+                        m.get("how_measured", ""),
+                    ),
+                )
+        if "roles" in data:
+            for r in data["roles"]:
+                conn.execute(
+                    "INSERT INTO user_roles (project_id, role, description, primary_workflow) VALUES (?, ?, ?, ?)",
+                    (
+                        project_id,
+                        r.get("role", ""),
+                        r.get("description", ""),
+                        r.get("primary_workflow", ""),
+                    ),
+                )
+        if "features" in data:
+            for f in data["features"]:
+                conn.execute(
+                    "INSERT INTO brief_features (project_id, name, description, priority, phase) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        project_id,
+                        f.get("name", ""),
+                        f.get("description", ""),
+                        f.get("priority", "could"),
+                        f.get("phase", "1"),
+                    ),
+                )
+        if "workflows" in data:
+            for w in data["workflows"]:
+                conn.execute(
+                    "INSERT INTO key_workflows (project_id, actor, trigger, steps, outcome) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        project_id,
+                        w.get("actor", ""),
+                        w.get("trigger", ""),
+                        w.get("steps", ""),
+                        w.get("outcome", ""),
+                    ),
+                )
+        if "stakeholders" in data:
+            for s in data["stakeholders"]:
+                conn.execute(
+                    "INSERT INTO stakeholders (project_id, name, title, authority) VALUES (?, ?, ?, ?)",
+                    (
+                        project_id,
+                        s.get("name", ""),
+                        s.get("title", ""),
+                        s.get("authority", ""),
+                    ),
+                )
+        if "risks" in data:
+            for r in data["risks"]:
+                conn.execute(
+                    "INSERT INTO project_risks (project_id, description, likelihood, impact, mitigation) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        project_id,
+                        r.get("description", ""),
+                        r.get("likelihood", "M"),
+                        r.get("impact", "M"),
+                        r.get("mitigation", ""),
+                    ),
+                )
+        if "integrations" in data:
+            for i in data["integrations"]:
+                conn.execute(
+                    "INSERT INTO integrations (project_id, system, purpose, direction, auth_method, phase_1_required) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        project_id,
+                        i.get("system", ""),
+                        i.get("purpose", ""),
+                        i.get("direction", ""),
+                        i.get("auth_method", ""),
+                        i.get("phase_1_required", False),
+                    ),
+                )
+        if "phases" in data:
+            for ph in data["phases"]:
+                conn.execute(
+                    "INSERT INTO release_phases (project_id, phase_number, description, target_date) VALUES (?, ?, ?, ?)",
+                    (
+                        project_id,
+                        ph.get("phase_number", "1"),
+                        ph.get("description", ""),
+                        ph.get("target_date", ""),
+                    ),
+                )
+        if "nfrs" in data:
+            for n in data["nfrs"]:
+                conn.execute(
+                    "INSERT INTO non_functional_requirements (project_id, nfr_type, notes) VALUES (?, ?, ?)",
+                    (project_id, n.get("nfr_type", "other"), n.get("notes", "")),
+                )
 
-  el.innerHTML = html;
+        # Seed step-3 task (feature definition)
+        step3 = conn.execute(
+            "SELECT id FROM pipeline_steps WHERE step_number = 3"
+        ).fetchone()
+        if step3:
+            conn.execute(
+                "INSERT INTO tasks (project_id, step_id, agent_role, status, retry_count) VALUES (?, ?, 'product_manager', 'pending', 0)",
+                (project_id, step3["id"]),
+            )
 
-  // Wire up tabs
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-    });
-  });
-}
+        conn.commit()
+        return {"ok": True, "project_id": project_id, "name": name}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
 
-function statCard(n, label, colorVar) {
-  return '<div class="stat-card"><div class="number" style="color:var(' + colorVar + ')">' + n + '</div><div class="label">' + label + '</div></div>';
-}
 
-function tab(id, label) {
-  return '<div class="tab' + (id === 'features' ? ' active' : '') + '" data-tab="' + id + '">' + label + '</div>';
-}
+# ---------------------------------------------------------------------------
+# HTML dashboard — loaded from external files
+# ---------------------------------------------------------------------------
 
-function esc(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+DASHBOARD_DIR = pathlib.Path(__file__).parent
+DASHBOARD_HTML_PATH = DASHBOARD_DIR / "dashboard.html"
+DOCS_DIR = DASHBOARD_DIR / "docs"
 
-// --- Init ---
-document.getElementById('project-select').addEventListener('change', e => {
-  const id = parseInt(e.target.value);
-  if (id) loadDashboard(id);
-});
 
-loadProjects();
-</script>
-</body>
-</html>
-"""
+def _load_dashboard_html() -> str:
+    """Load the dashboard HTML from the external file."""
+    if DASHBOARD_HTML_PATH.exists():
+        return DASHBOARD_HTML_PATH.read_text("utf-8")
+    return "<html><body><h1>Dashboard HTML not found</h1></body></html>"
+
+
+def _load_doc_page(page: str) -> str:
+    """Load a documentation page HTML fragment from the docs directory."""
+    doc_path = DOCS_DIR / f"{page}.html"
+    if doc_path.exists():
+        return doc_path.read_text("utf-8")
+    return "<p>Page not found</p>"
 
 
 # ---------------------------------------------------------------------------
@@ -665,10 +685,23 @@ loadProjects();
 class DashboardHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/" or self.path == "/dashboard":
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(DASHBOARD_HTML.encode("utf-8"))
+            self._html_response(_load_dashboard_html())
+
+        elif self.path in ("/about", "/quick-start", "/using"):
+            self._html_response(_load_dashboard_html())
+
+        elif self.path == "/brief" or self.path.startswith("/brief?"):
+            self._serve_brief_form()
+
+        elif self.path.startswith("/api/docs/"):
+            page = self.path.split("/")[-1]
+            html = _load_doc_page(page)
+            if html == "<p>Page not found</p>":
+                self._json_response(
+                    {"error": "Page not found", "html": html}, status=404
+                )
+            else:
+                self._json_response({"html": html})
 
         elif self.path == "/api/projects":
             self._json_response(api_projects())
@@ -680,11 +713,162 @@ class DashboardHandler(BaseHTTPRequestHandler):
             except (ValueError, IndexError):
                 self._json_response({"error": "Invalid project ID"}, status=400)
 
+        elif self.path.startswith("/api/questions/"):
+            try:
+                project_id = int(self.path.split("/")[-1])
+                self._json_response(api_questions(project_id))
+            except (ValueError, IndexError):
+                self._json_response({"error": "Invalid project ID"}, status=400)
+
         else:
             self.send_response(404)
             self.send_header("Content-Type", "text/plain")
             self.end_headers()
             self.wfile.write(b"Not found")
+
+    def do_POST(self):
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length).decode("utf-8") if content_length else ""
+
+        # Parse body based on content type
+        content_type = self.headers.get("Content-Type", "")
+        if "application/json" in content_type:
+            try:
+                data = json.loads(body) if body else {}
+            except json.JSONDecodeError:
+                self._json_response({"error": "Invalid JSON"}, status=400)
+                return
+        elif "application/x-www-form-urlencoded" in content_type:
+            data = dict(urllib.parse.parse_qs(body))
+            # Flatten single-value params
+            data = {k: v[0] if len(v) == 1 else v for k, v in data.items()}
+        else:
+            data = {}
+
+        # Route POST endpoints
+        path = self.path
+
+        # Task actions
+        if path.startswith("/api/tasks/") and path.endswith("/claim"):
+            task_id = self._extract_task_id(path, "/claim")
+            if task_id is None:
+                self._json_response({"error": "Invalid task ID"}, status=400)
+                return
+            self._json_response(api_claim_task(task_id))
+
+        elif path.startswith("/api/tasks/") and path.endswith("/approve"):
+            task_id = self._extract_task_id(path, "/approve")
+            if task_id is None:
+                self._json_response({"error": "Invalid task ID"}, status=400)
+                return
+            notes = data.get("notes", "")
+            self._json_response(api_approve_task(task_id, notes))
+
+        elif path.startswith("/api/tasks/") and path.endswith("/reject"):
+            task_id = self._extract_task_id(path, "/reject")
+            if task_id is None:
+                self._json_response({"error": "Invalid task ID"}, status=400)
+                return
+            notes = data.get("notes", "")
+            if not notes:
+                self._json_response({"error": "Rejection notes required"}, status=400)
+                return
+            self._json_response(api_reject_task(task_id, notes))
+
+        elif path.startswith("/api/tasks/") and path.endswith("/pause"):
+            task_id = self._extract_task_id(path, "/pause")
+            if task_id is None:
+                self._json_response({"error": "Invalid task ID"}, status=400)
+                return
+            self._json_response(api_pause_task(task_id))
+
+        elif path.startswith("/api/tasks/") and path.endswith("/resume"):
+            task_id = self._extract_task_id(path, "/resume")
+            if task_id is None:
+                self._json_response({"error": "Invalid task ID"}, status=400)
+                return
+            self._json_response(api_resume_task(task_id))
+
+        elif path.startswith("/api/tasks/") and path.endswith("/reset"):
+            task_id = self._extract_task_id(path, "/reset")
+            if task_id is None:
+                self._json_response({"error": "Invalid task ID"}, status=400)
+                return
+            self._json_response(api_reset_task(task_id))
+
+        # Project actions
+        elif path.startswith("/api/projects/") and path.endswith("/pause"):
+            project_id = self._extract_id(path, "/api/projects/", "/pause")
+            if project_id is None:
+                self._json_response({"error": "Invalid project ID"}, status=400)
+                return
+            self._json_response(api_pause_project(project_id))
+
+        elif path.startswith("/api/projects/") and path.endswith("/resume"):
+            project_id = self._extract_id(path, "/api/projects/", "/resume")
+            if project_id is None:
+                self._json_response({"error": "Invalid project ID"}, status=400)
+                return
+            self._json_response(api_resume_project(project_id))
+
+        # Create project (from brief form API mode)
+        elif path == "/api/projects":
+            self._json_response(api_create_project(data))
+
+        # Answer question
+        elif path.startswith("/api/questions/") and path.endswith("/answer"):
+            question_id = self._extract_id(path, "/api/questions/", "/answer")
+            if question_id is None:
+                self._json_response({"error": "Invalid question ID"}, status=400)
+                return
+            answer = data.get("answer", "")
+            if not answer:
+                self._json_response({"error": "Answer required"}, status=400)
+                return
+            self._json_response(api_answer_question(question_id, answer))
+
+        else:
+            self.send_response(404)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Not found")
+
+    def _extract_task_id(self, path: str, suffix: str) -> int | None:
+        """Extract task ID from paths like /api/tasks/42/claim"""
+        try:
+            prefix = "/api/tasks/"
+            stripped = path[len(prefix) :]
+            id_str = stripped[: stripped.index("/")]
+            return int(id_str)
+        except (ValueError, IndexError):
+            return None
+
+    def _extract_id(self, path: str, prefix: str, suffix: str) -> int | None:
+        """Extract integer ID from paths like /api/projects/5/pause"""
+        try:
+            stripped = path[len(prefix) :]
+            id_str = stripped[: stripped.index("/")]
+            return int(id_str)
+        except (ValueError, IndexError):
+            return None
+
+    def _serve_brief_form(self):
+        """Serve the project brief form HTML."""
+        form_path = pathlib.Path(BRIEF_FORM_PATH)
+        if not form_path.exists():
+            self.send_response(404)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"Brief form not found at " + BRIEF_FORM_PATH.encode())
+            return
+        html = form_path.read_text("utf-8")
+        self._html_response(html)
+
+    def _html_response(self, html: str):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.end_headers()
+        self.wfile.write(html.encode("utf-8"))
 
     def _json_response(self, data, status=200):
         self.send_response(status)
@@ -694,8 +878,56 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(data, default=str).encode("utf-8"))
 
     def log_message(self, format, *args):
-        # Suppress per-request logs for cleanliness
         pass
+
+
+def _run_migrations():
+    """Apply any pending schema migrations (same logic as mcp_server.py)."""
+    migrations_dir = pathlib.Path(__file__).parent / "migrations"
+    if not migrations_dir.is_dir():
+        return
+
+    conn = _get_conn()
+    try:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS schema_migrations ("
+            "version INTEGER PRIMARY KEY, "
+            "name TEXT NOT NULL, "
+            "applied_at TEXT NOT NULL DEFAULT (datetime('now', 'utc'))"
+            ")"
+        )
+        conn.commit()
+        applied = {
+            row[0]
+            for row in conn.execute("SELECT version FROM schema_migrations").fetchall()
+        }
+
+        for path in sorted(migrations_dir.glob("*.sql")):
+            version = int(path.stem.split("_", 1)[0])
+            if version in applied:
+                continue
+            sql = path.read_text("utf-8")
+            try:
+                conn.executescript(sql)
+                conn.execute(
+                    "INSERT INTO schema_migrations (version, name) VALUES (?, ?)",
+                    (version, path.stem),
+                )
+                conn.commit()
+                print(f"  Applied migration {path.stem}")
+            except sqlite3.OperationalError as e:
+                # If the migration fails because the object already exists
+                # (fresh DB created with init.sql), record it and continue.
+                if "already exists" in str(e):
+                    conn.execute(
+                        "INSERT INTO schema_migrations (version, name) VALUES (?, ?)",
+                        (version, path.stem),
+                    )
+                    conn.commit()
+                else:
+                    raise
+    finally:
+        conn.close()
 
 
 def main():
@@ -704,10 +936,14 @@ def main():
         print("   Start TaskFlow first to create the database, then run the dashboard.")
         return
 
+    # Apply any pending migrations
+    _run_migrations()
+
     server = HTTPServer(("127.0.0.1", PORT), DashboardHandler)
     url = f"http://127.0.0.1:{PORT}"
     print(f"✓ TaskFlow Dashboard running at {url}")
     print(f"  Database: {DB_PATH}")
+    print(f"  Brief form: {url}/brief")
     print(f"  Press Ctrl+C to stop")
     webbrowser.open(url)
     try:

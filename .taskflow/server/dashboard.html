@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>TaskFlow Dashboard</title>
+	<style>
+		:root {
+			--blue: #2563eb;
+			--blue-lt: #eff6ff;
+			--blue-dk: #1d4ed8;
+			--red: #dc2626;
+			--red-lt: #fef2f2;
+			--green: #16a34a;
+			--green-lt: #f0fdf4;
+			--yellow: #d97706;
+			--yellow-lt: #fffbeb;
+			--purple: #7c3aed;
+			--purple-lt: #f5f3ff;
+			--orange: #ea580c;
+			--cyan: #0891b2;
+			--g50: #f9fafb;
+			--g100: #f3f4f6;
+			--g200: #e5e7eb;
+			--g300: #d1d5db;
+			--g400: #9ca3af;
+			--g500: #6b7280;
+			--g600: #4b5563;
+			--g700: #374151;
+			--g800: #1f2937;
+			--g900: #111827;
+			--font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+			--r: 8px;
+		}
+
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			font-family: var(--font);
+			background: var(--g50);
+			color: var(--g800);
+			line-height: 1.5;
+		}
+
+		/* ── Layout ── */
+		.wrap {
+			display: grid;
+			grid-template-columns: 210px 1fr;
+			min-height: 100vh;
+		}
+
+		/* ── Sidebar ── */
+		.sidebar {
+			position: sticky;
+			top: 0;
+			height: 100vh;
+			overflow-y: auto;
+			background: white;
+			border-right: 1px solid var(--g200);
+			padding: 20px 0 40px;
+		}
+
+		.sb-logo {
+			padding: 0 16px 16px;
+			border-bottom: 1px solid var(--g100);
+			margin-bottom: 6px;
+		}
+
+		.sb-logo span {
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: .06em;
+			text-transform: uppercase;
+			color: var(--g400);
+		}
+
+		.sb-logo h1 {
+			font-size: 14px;
+			font-weight: 700;
+			color: var(--g800);
+			margin-top: 2px;
+		}
+
+		.nav-a {
+			display: flex;
+			align-items: center;
+			gap: 9px;
+			padding: 7px 16px;
+			font-size: 12.5px;
+			color: var(--g600);
+			text-decoration: none;
+			border-radius: 0 6px 6px 0;
+			margin-right: 8px;
+			transition: background .1s;
+			cursor: pointer;
+		}
+
+		.nav-a:hover {
+			background: var(--g100);
+			color: var(--g800);
+		}
+
+		.nav-a.active {
+			background: var(--blue-lt);
+			color: var(--blue);
+			font-weight: 600;
+		}
+
+		.nav-n {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 18px;
+			height: 18px;
+			border-radius: 50%;
+			background: var(--g200);
+			font-size: 10px;
+			font-weight: 700;
+			flex-shrink: 0;
+		}
+
+		.nav-a.active .nav-n {
+			background: var(--blue);
+			color: white;
+		}
+
+		.nav-icon {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 18px;
+			height: 18px;
+			flex-shrink: 0;
+			font-size: 12px;
+		}
+
+		.sb-section {
+			padding: 12px 16px 4px;
+			font-size: 10px;
+			font-weight: 700;
+			letter-spacing: .08em;
+			text-transform: uppercase;
+			color: var(--g400);
+		}
+
+		.sb-status {
+			padding: 14px 16px 0;
+			font-size: 11px;
+			color: var(--g400);
+		}
+
+		.sb-divider {
+			border: none;
+			border-top: 1px solid var(--g100);
+			margin: 8px 16px;
+		}
+
+		/* ── Main ── */
+		.main {
+			padding: 32px 44px;
+		}
+
+		/* ── Page header ── */
+		.pg-hdr {
+			margin-bottom: 24px;
+		}
+
+		.pg-hdr h1 {
+			font-size: 1.5rem;
+			font-weight: 700;
+			color: var(--g900);
+			margin-bottom: 4px;
+		}
+
+		.pg-hdr p {
+			font-size: 0.85rem;
+			color: var(--g500);
+		}
+
+		/* ── Project selector ── */
+		.project-bar {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			margin-bottom: 20px;
+			flex-wrap: wrap;
+		}
+
+		.project-bar select {
+			background: white;
+			color: var(--g800);
+			border: 1px solid var(--g300);
+			border-radius: 6px;
+			padding: 6px 12px;
+			font-size: 0.85rem;
+			font-family: var(--font);
+			min-width: 280px;
+		}
+
+		.project-bar select:focus {
+			outline: none;
+			border-color: var(--blue);
+		}
+
+		/* ── Buttons ── */
+		.btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			padding: 5px 12px;
+			border: 1px solid var(--g300);
+			border-radius: 6px;
+			background: white;
+			color: var(--g700);
+			font-size: 0.8rem;
+			font-weight: 500;
+			cursor: pointer;
+			white-space: nowrap;
+			transition: all .1s;
+			text-decoration: none;
+			font-family: var(--font);
+		}
+
+		.btn:hover {
+			background: var(--g100);
+			border-color: var(--g400);
+		}
+
+		.btn-primary {
+			background: var(--blue);
+			color: white;
+			border-color: var(--blue);
+		}
+
+		.btn-primary:hover {
+			background: var(--blue-dk);
+		}
+
+		.btn-danger {
+			color: var(--red);
+			border-color: var(--red);
+		}
+
+		.btn-danger:hover {
+			background: var(--red-lt);
+		}
+
+		.btn-success {
+			color: var(--green);
+			border-color: var(--green);
+		}
+
+		.btn-success:hover {
+			background: var(--green-lt);
+		}
+
+		.btn-warning {
+			color: var(--yellow);
+			border-color: var(--yellow);
+		}
+
+		.btn-warning:hover {
+			background: var(--yellow-lt);
+		}
+
+		.btn-sm {
+			padding: 3px 8px;
+			font-size: 0.75rem;
+		}
+
+		.btn-lg {
+			padding: 9px 22px;
+			font-size: 0.9rem;
+			font-weight: 600;
+		}
+
+		/* ── Cards ── */
+		.card {
+			background: white;
+			border: 1px solid var(--g200);
+			border-radius: var(--r);
+			padding: 16px;
+			margin-bottom: 16px;
+		}
+
+		.card-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+			gap: 12px;
+			margin-bottom: 20px;
+		}
+
+		.stat-card {
+			background: white;
+			border: 1px solid var(--g200);
+			border-radius: var(--r);
+			padding: 16px;
+			text-align: center;
+		}
+
+		.stat-card .number {
+			font-size: 1.8rem;
+			font-weight: 700;
+		}
+
+		.stat-card .label {
+			font-size: 0.75rem;
+			color: var(--g500);
+			text-transform: uppercase;
+			letter-spacing: .05em;
+		}
+
+		/* ── Status badges ── */
+		.badge {
+			display: inline-block;
+			padding: 2px 8px;
+			border-radius: 12px;
+			font-size: 0.7rem;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: .03em;
+		}
+
+		.badge-done {
+			background: var(--green-lt);
+			color: var(--green);
+		}
+
+		.badge-in_progress {
+			background: var(--yellow-lt);
+			color: var(--yellow);
+		}
+
+		.badge-pending {
+			background: var(--g100);
+			color: var(--g500);
+		}
+
+		.badge-blocked {
+			background: var(--red-lt);
+			color: var(--red);
+		}
+
+		.badge-rejected {
+			background: var(--red-lt);
+			color: var(--red);
+		}
+
+		.badge-paused {
+			background: var(--purple-lt);
+			color: var(--purple);
+		}
+
+		.badge-active {
+			background: var(--green-lt);
+			color: var(--green);
+		}
+
+		.badge-complete {
+			background: var(--blue-lt);
+			color: var(--blue);
+		}
+
+		/* ── Tables ── */
+		table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 0.85rem;
+		}
+
+		th {
+			text-align: left;
+			padding: 8px 12px;
+			border-bottom: 2px solid var(--g200);
+			color: var(--g500);
+			font-weight: 600;
+			font-size: 0.75rem;
+			text-transform: uppercase;
+			letter-spacing: .05em;
+		}
+
+		td {
+			padding: 8px 12px;
+			border-bottom: 1px solid var(--g100);
+		}
+
+		tr:hover td {
+			background: var(--g50);
+		}
+
+		.td-actions {
+			white-space: nowrap;
+		}
+
+		/* ── Pipeline progress bar ── */
+		.pipeline-bar {
+			display: flex;
+			gap: 2px;
+			margin: 8px 0;
+		}
+
+		.pipeline-step {
+			flex: 1;
+			padding: 5px 3px;
+			text-align: center;
+			font-size: 0.65rem;
+			border-radius: 4px;
+			background: var(--g100);
+			color: var(--g500);
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		.pipeline-step.done {
+			background: var(--green-lt);
+			color: var(--green);
+		}
+
+		.pipeline-step.in_progress {
+			background: var(--yellow-lt);
+			color: var(--yellow);
+		}
+
+		.pipeline-step.blocked {
+			background: var(--red-lt);
+			color: var(--red);
+		}
+
+		.pipeline-step.paused {
+			background: var(--purple-lt);
+			color: var(--purple);
+		}
+
+		/* ── Feature cards ── */
+		.feature-card {
+			margin-bottom: 12px;
+		}
+
+		.feature-header {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 6px;
+		}
+
+		.feature-title {
+			font-weight: 600;
+			font-size: 0.9rem;
+		}
+
+		/* ── Floating nav card ── */
+		.float-nav {
+			position: sticky;
+			top: 32px;
+			float: right;
+			width: 180px;
+			margin-left: 24px;
+			margin-bottom: 24px;
+		}
+
+		.float-nav .card {
+			padding: 12px;
+		}
+
+		.float-nav-a {
+			display: block;
+			padding: 6px 10px;
+			font-size: 0.8rem;
+			color: var(--g600);
+			text-decoration: none;
+			border-radius: 4px;
+			cursor: pointer;
+			transition: all .1s;
+		}
+
+		.float-nav-a:hover {
+			background: var(--g100);
+			color: var(--g800);
+		}
+
+		.float-nav-a.active {
+			background: var(--blue-lt);
+			color: var(--blue);
+			font-weight: 600;
+		}
+
+		.float-nav-a .badge-count {
+			display: inline-block;
+			background: var(--red);
+			color: white;
+			font-size: 0.6rem;
+			padding: 0 5px;
+			border-radius: 10px;
+			font-weight: 700;
+			min-width: 16px;
+			text-align: center;
+			margin-left: 4px;
+		}
+
+		/* ── Content area ── */
+		.content-with-nav {
+			overflow: hidden;
+		}
+
+		.content-body {
+			max-width: calc(100% - 204px);
+		}
+
+		/* ── Question card ── */
+		.question-card {
+			background: white;
+			border: 1px solid var(--g200);
+			border-left: 3px solid var(--orange);
+			border-radius: var(--r);
+			padding: 16px;
+			margin-bottom: 12px;
+		}
+
+		.question-card.answered {
+			border-left-color: var(--green);
+			opacity: 0.7;
+		}
+
+		.question-meta {
+			font-size: 0.75rem;
+			color: var(--g500);
+			margin-bottom: 8px;
+		}
+
+		.question-text {
+			font-size: 0.95rem;
+			margin-bottom: 12px;
+		}
+
+		.question-options {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+			margin-bottom: 12px;
+		}
+
+		.question-option {
+			padding: 4px 12px;
+			border: 1px solid var(--g300);
+			border-radius: 6px;
+			font-size: 0.8rem;
+			cursor: pointer;
+			transition: all .1s;
+		}
+
+		.question-option:hover {
+			border-color: var(--blue);
+			color: var(--blue);
+		}
+
+		.question-answer-form {
+			display: flex;
+			gap: 8px;
+			margin-top: 8px;
+		}
+
+		.question-answer-form input {
+			flex: 1;
+			background: white;
+			border: 1px solid var(--g300);
+			border-radius: 6px;
+			padding: 6px 10px;
+			color: var(--g800);
+			font-size: 0.85rem;
+		}
+
+		.question-answer-form input:focus {
+			outline: none;
+			border-color: var(--blue);
+		}
+
+		/* ── Toast ── */
+		.toast {
+			position: fixed;
+			bottom: 24px;
+			right: 24px;
+			background: white;
+			border: 1px solid var(--g200);
+			border-radius: var(--r);
+			padding: 12px 20px;
+			font-size: 0.85rem;
+			z-index: 1000;
+			transition: all .3s;
+			transform: translateY(100px);
+			opacity: 0;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, .1);
+		}
+
+		.toast.show {
+			transform: translateY(0);
+			opacity: 1;
+		}
+
+		.toast.success {
+			border-color: var(--green);
+		}
+
+		.toast.error {
+			border-color: var(--red);
+		}
+
+		/* ── Confirm dialog ── */
+		.confirm-overlay {
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, .4);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: 999;
+		}
+
+		.confirm-dialog {
+			background: white;
+			border: 1px solid var(--g200);
+			border-radius: 12px;
+			padding: 24px;
+			max-width: 400px;
+			width: 90%;
+			box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
+		}
+
+		.confirm-dialog h3 {
+			margin-top: 0;
+			color: var(--g900);
+		}
+
+		.confirm-dialog p {
+			color: var(--g600);
+			margin-bottom: 16px;
+			font-size: 0.9rem;
+		}
+
+		.confirm-dialog .actions {
+			display: flex;
+			gap: 8px;
+			justify-content: flex-end;
+		}
+
+		.confirm-dialog textarea {
+			width: 100%;
+			background: var(--g50);
+			border: 1px solid var(--g300);
+			border-radius: 6px;
+			padding: 8px;
+			color: var(--g800);
+			font-size: 0.85rem;
+			margin-bottom: 12px;
+			resize: vertical;
+			min-height: 60px;
+			font-family: var(--font);
+		}
+
+		/* ── Welcome screen ── */
+		.welcome {
+			text-align: center;
+			padding: 60px 20px;
+			max-width: 600px;
+			margin: 0 auto;
+		}
+
+		.welcome h1 {
+			font-size: 2rem;
+			margin-bottom: 8px;
+			color: var(--g900);
+		}
+
+		.welcome p {
+			color: var(--g500);
+			margin-bottom: 24px;
+			font-size: 1.1rem;
+		}
+
+		.welcome-steps {
+			text-align: left;
+			background: white;
+			border: 1px solid var(--g200);
+			border-radius: var(--r);
+			padding: 24px;
+			margin-bottom: 24px;
+		}
+
+		.welcome-step {
+			display: flex;
+			gap: 12px;
+			margin-bottom: 16px;
+			align-items: flex-start;
+		}
+
+		.welcome-step:last-child {
+			margin-bottom: 0;
+		}
+
+		.welcome-step .step-num {
+			background: var(--blue);
+			color: white;
+			width: 28px;
+			height: 28px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: 700;
+			font-size: 0.85rem;
+			flex-shrink: 0;
+		}
+
+		.welcome-step .step-text {
+			flex: 1;
+		}
+
+		.welcome-step .step-text strong {
+			display: block;
+			margin-bottom: 2px;
+			color: var(--g800);
+		}
+
+		.welcome-step .step-text span {
+			color: var(--g500);
+			font-size: 0.85rem;
+		}
+
+		/* ── Artefact types ── */
+		.artefact-pattern {
+			color: var(--green);
+		}
+
+		.artefact-gotcha {
+			color: var(--red);
+		}
+
+		.artefact-note {
+			color: var(--blue);
+		}
+
+		.artefact-constraint {
+			color: var(--orange);
+		}
+
+		/* ── Empty state ── */
+		.empty {
+			color: var(--g500);
+			font-style: italic;
+			padding: 16px 0;
+		}
+
+		/* ── Scrollable ── */
+		.scroll-x {
+			overflow-x: auto;
+		}
+
+		/* ── Refresh info ── */
+		.refresh-info {
+			font-size: 0.75rem;
+			color: var(--g400);
+		}
+
+		/* ── Doc pages ── */
+		.doc-content h2 {
+			font-size: 1.3rem;
+			color: var(--g900);
+			margin: 24px 0 12px;
+		}
+
+		.doc-content h3 {
+			font-size: 1.1rem;
+			color: var(--g800);
+			margin: 20px 0 8px;
+		}
+
+		.doc-content p {
+			color: var(--g600);
+			margin-bottom: 12px;
+			line-height: 1.7;
+		}
+
+		.doc-content ul {
+			margin: 0 0 16px 24px;
+			color: var(--g600);
+		}
+
+		.doc-content li {
+			margin-bottom: 6px;
+		}
+
+		.doc-content code {
+			background: var(--g100);
+			padding: 2px 6px;
+			border-radius: 4px;
+			font-size: 0.85rem;
+			color: var(--blue-dk);
+		}
+
+		.doc-content pre {
+			background: var(--g900);
+			color: var(--g100);
+			padding: 16px;
+			border-radius: var(--r);
+			overflow-x: auto;
+			margin-bottom: 16px;
+			font-size: 0.85rem;
+		}
+
+		.doc-content pre code {
+			background: none;
+			color: inherit;
+			padding: 0;
+		}
+
+		.doc-content .card-grid {
+			grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+		}
+
+		.doc-content .info-card {
+			background: white;
+			border: 1px solid var(--g200);
+			border-radius: var(--r);
+			padding: 20px;
+		}
+
+		.doc-content .info-card h3 {
+			margin-top: 0;
+			color: var(--blue);
+		}
+
+		.doc-content .info-card p {
+			font-size: 0.85rem;
+		}
+
+		/* ── Responsive ── */
+		@media (max-width: 900px) {
+			.wrap {
+				grid-template-columns: 1fr;
+			}
+
+			.sidebar {
+				display: none;
+			}
+
+			.main {
+				padding: 20px 16px;
+			}
+
+			.float-nav {
+				display: none;
+			}
+
+			.content-body {
+				max-width: 100%;
+			}
+		}
+	</style>
+</head>
+
+<body>
+
+	<div class="wrap">
+
+		<!-- ── Sidebar ── -->
+		<nav class="sidebar" id="sidebar">
+			<div class="sb-logo">
+				<span>TaskFlow</span>
+				<h1 id="sidebar-title">Dashboard</h1>
+			</div>
+
+			<div class="sb-section">Navigation</div>
+			<a href="/" class="nav-a active" data-page="dashboard" onclick="navigateTo('dashboard',event)">
+				<span class="nav-icon">📊</span> Dashboard
+			</a>
+			<a href="/brief" class="nav-a" data-page="brief">
+				<span class="nav-icon">📝</span> New Brief
+			</a>
+
+			<div class="sb-section" id="project-nav-section" style="display:none">Project</div>
+			<div id="project-nav-items"></div>
+
+			<hr class="sb-divider">
+			<div class="sb-section">Documentation</div>
+			<a href="/about" class="nav-a" data-page="about" onclick="navigateTo('about',event)">
+				<span class="nav-icon">ℹ️</span> About TaskFlow
+			</a>
+			<a href="/quick-start" class="nav-a" data-page="quick-start" onclick="navigateTo('quick-start',event)">
+				<span class="nav-icon">🚀</span> Quick Start
+			</a>
+			<a href="/using" class="nav-a" data-page="using" onclick="navigateTo('using',event)">
+				<span class="nav-icon">📖</span> Using TaskFlow
+			</a>
+
+			<div class="sb-status" id="sb-status"></div>
+		</nav>
+
+		<!-- ── Main ── -->
+		<main class="main" id="main-content">
+			<!-- Content injected by JS -->
+		</main>
+
+	</div>
+
+	<!-- Toast -->
+	<div class="toast" id="toast"></div>
+
+	<!-- Confirm dialog container -->
+	<div id="confirm-container"></div>
+
+	<script>
+		const API = '';
+		let currentProjectId = null;
+		let currentProjectStatus = null;
+		let currentPage = 'dashboard';
+		let refreshTimer = null;
+
+		// --- Navigation ---
+		function navigateTo(page, event) {
+			if (event) event.preventDefault();
+			currentPage = page;
+			// Update sidebar active state
+			document.querySelectorAll('.sidebar .nav-a').forEach(a => {
+				a.classList.toggle('active', a.dataset.page === page);
+			});
+			// Update sidebar title
+			const titles = { dashboard: 'Dashboard', about: 'About TaskFlow', 'quick-start': 'Quick Start', using: 'Using TaskFlow' };
+			document.getElementById('sidebar-title').textContent = titles[page] || 'TaskFlow';
+			// Load content
+			if (page === 'dashboard') {
+				loadProjects();
+			} else {
+				if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+				loadDocPage(page);
+			}
+			history.pushState(null, '', '/' + (page === 'dashboard' ? '' : page));
+		}
+
+		async function loadDocPage(page) {
+			const r = await fetch(API + '/api/docs/' + page);
+			const data = await r.json();
+			document.getElementById('main-content').innerHTML = data.html || '<p class="empty">Page not found</p>';
+		}
+
+		// --- API calls ---
+		async function fetchJSON(url) {
+			const r = await fetch(url);
+			return r.json();
+		}
+
+		async function postJSON(url, data) {
+			const r = await fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(data),
+			});
+			return r.json();
+		}
+
+		// --- Toast ---
+		function showToast(msg, type = 'success') {
+			const el = document.getElementById('toast');
+			el.textContent = msg;
+			el.className = 'toast ' + type + ' show';
+			setTimeout(() => { el.className = 'toast'; }, 3000);
+		}
+
+		// --- Confirm dialog ---
+		function confirmAction(title, message, onConfirm, requireText = false, placeholder = '') {
+			const container = document.getElementById('confirm-container');
+			let html = '<div class="confirm-overlay" onclick="if(event.target===this)closeConfirm()">';
+			html += '<div class="confirm-dialog">';
+			html += '<h3>' + esc(title) + '</h3>';
+			html += '<p>' + esc(message) + '</p>';
+			if (requireText) {
+				html += '<textarea id="confirm-text" placeholder="' + esc(placeholder) + '"></textarea>';
+			}
+			html += '<div class="actions">';
+			html += '<button class="btn" onclick="closeConfirm()">Cancel</button>';
+			html += '<button class="btn btn-primary" id="confirm-ok">Confirm</button>';
+			html += '</div></div></div>';
+			container.innerHTML = html;
+			document.getElementById('confirm-ok').onclick = () => {
+				const text = requireText ? document.getElementById('confirm-text').value : null;
+				closeConfirm();
+				onConfirm(text);
+			};
+		}
+
+		function closeConfirm() {
+			document.getElementById('confirm-container').innerHTML = '';
+		}
+
+		// --- Agent deep-link ---
+		function agentLink(agentRole, prompt) {
+			const base = 'vscode://GitHub.copilot-chat/chat';
+			const params = new URLSearchParams();
+			params.set('agent', '@TaskFlow ' + agentRole);
+			if (prompt) params.set('prompt', prompt);
+			return base + '?' + params.toString();
+		}
+
+		// --- Load projects ---
+		async function loadProjects() {
+			const projects = await fetchJSON(API + '/api/projects');
+			const sel = document.getElementById('project-select');
+			if (!sel) {
+				// First load — render dashboard shell
+				renderDashboardShell();
+			}
+			const selEl = document.getElementById('project-select');
+			const prevVal = selEl ? selEl.value : null;
+			selEl.innerHTML = '';
+			if (projects.length === 0) {
+				selEl.innerHTML = '<option value="">No projects yet</option>';
+				renderWelcome();
+				return;
+			}
+			projects.forEach(p => {
+				const opt = document.createElement('option');
+				opt.value = p.id;
+				opt.textContent = p.name + ' — ' + taskSummary(p);
+				selEl.appendChild(opt);
+			});
+			if (prevVal && projects.find(p => p.id == prevVal)) {
+				selEl.value = prevVal;
+			} else {
+				selEl.value = projects[0].id;
+			}
+			selEl.dispatchEvent(new Event('change'));
+		}
+
+		function taskSummary(p) {
+			const parts = [];
+			if (p.done_count) parts.push(p.done_count + ' done');
+			if (p.in_progress_count) parts.push(p.in_progress_count + ' active');
+			if (p.pending_count) parts.push(p.pending_count + ' pending');
+			if (p.blocked_count) parts.push(p.blocked_count + ' blocked');
+			if (p.paused_count) parts.push(p.paused_count + ' paused');
+			return parts.length ? '(' + parts.join(', ') + ')' : '(no tasks)';
+		}
+
+		// --- Dashboard shell ---
+		function renderDashboardShell() {
+			document.getElementById('main-content').innerHTML = `
+    <div class="pg-hdr">
+      <h1>TaskFlow Dashboard</h1>
+      <p class="refresh-info" id="refresh-info"></p>
+    </div>
+    <div class="project-bar">
+      <label for="project-select" style="font-size:0.85rem;font-weight:600;">Project:</label>
+      <select id="project-select"><option value="">Loading...</option></select>
+      <span id="project-status-badge"></span>
+      <span id="project-actions"></span>
+    </div>
+    <div id="dashboard-content">
+      <p class="empty">Select a project to view its pipeline status.</p>
+    </div>
+  `;
+			document.getElementById('project-select').addEventListener('change', e => {
+				const id = parseInt(e.target.value);
+				if (id) loadDashboard(id);
+				else renderWelcome();
+			});
+		}
+
+		// --- Welcome screen ---
+		function renderWelcome() {
+			const el = document.getElementById('dashboard-content');
+			if (!el) return;
+			el.innerHTML = `
+    <div class="welcome">
+      <h1>Welcome to TaskFlow</h1>
+      <p>Your agentic development pipeline control plane</p>
+      <div class="welcome-steps">
+        <div class="welcome-step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <strong>Create a project brief</strong>
+            <span>Define what you're building, who it's for, and what success looks like</span>
+          </div>
+        </div>
+        <div class="welcome-step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <strong>Configure the agent team</strong>
+            <span>The Dev Manager sets up MCP servers, skills, and specialist agents</span>
+          </div>
+        </div>
+        <div class="welcome-step">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <strong>Run the pipeline</strong>
+            <span>Agents define features, write tests, build code, and review — all tracked here</span>
+          </div>
+        </div>
+      </div>
+      <a href="/brief" class="btn btn-primary btn-lg">📝 Create Project Brief</a>
+      <div style="margin-top:16px;">
+        <button class="btn" onclick="runAgent('taskflow-initiation-manager', 'I want to start a new project')">💬 Chat with Initiation Manager</button>
+      </div>
+    </div>
+  `;
+		}
+
+		// --- Load dashboard ---
+		async function loadDashboard(projectId) {
+			currentProjectId = projectId;
+			if (refreshTimer) clearInterval(refreshTimer);
+			refreshTimer = setInterval(() => { if (currentProjectId) loadDashboard(currentProjectId); }, 30000);
+
+			const data = await fetchJSON(API + '/api/pipeline/' + projectId);
+			if (data.error) {
+				const el = document.getElementById('dashboard-content');
+				if (el) el.innerHTML = '<p class="empty">' + data.error + '</p>';
+				return;
+			}
+			currentProjectStatus = data.project.status;
+			renderDashboard(data);
+			const info = document.getElementById('refresh-info');
+			if (info) info.textContent = 'Auto-refreshes every 30s · Schema v' + data.schema_version;
+		}
+
+		// --- Rendering ---
+		function renderDashboard(data) {
+			const el = document.getElementById('dashboard-content');
+			if (!el) return;
+			const p = data.project;
+			const tasks = data.tasks;
+
+			// Project status badge + actions
+			const badgeEl = document.getElementById('project-status-badge');
+			const actionsEl = document.getElementById('project-actions');
+			if (badgeEl) badgeEl.innerHTML = '<span class="badge badge-' + p.status + '">' + p.status + '</span>';
+			let projActions = '';
+			if (p.status === 'active') {
+				projActions += '<button class="btn btn-warning btn-sm" onclick="pauseProject(' + p.id + ')">⏸ Pause</button> ';
+			} else if (p.status === 'paused') {
+				projActions += '<button class="btn btn-success btn-sm" onclick="resumeProject(' + p.id + ')">▶ Resume</button> ';
+			}
+			projActions += '<button class="btn btn-primary btn-sm" onclick="runAgent(\'taskflow-orchestrator\', \'Run the pipeline for project ' + p.id + ': ' + esc(p.name) + '\')">🚀 Run Pipeline</button>';
+			if (actionsEl) actionsEl.innerHTML = projActions;
+
+			// Stats
+			const done = tasks.filter(t => t.status === 'done').length;
+			const active = tasks.filter(t => t.status === 'in_progress').length;
+			const pending = tasks.filter(t => t.status === 'pending').length;
+			const blocked = tasks.filter(t => t.status === 'blocked').length;
+			const paused = tasks.filter(t => t.status === 'paused').length;
+			const unansweredQs = (data.questions || []).filter(q => q.answer === null).length;
+
+			let html = '';
+
+			// Stats cards
+			html += '<div class="card-grid">';
+			html += statCard(done, 'Done', 'var(--green)');
+			html += statCard(active, 'In Progress', 'var(--yellow)');
+			html += statCard(pending, 'Pending', 'var(--g500)');
+			html += statCard(blocked, 'Blocked', 'var(--red)');
+			if (paused > 0) html += statCard(paused, 'Paused', 'var(--purple)');
+			html += '</div>';
+
+			// Content area with floating nav
+			html += '<div class="content-with-nav">';
+			html += '<div class="float-nav"><div class="card">';
+			html += floatNavTab('features', 'Features');
+			html += floatNavTab('tasks', 'All Tasks');
+			html += floatNavTab('questions', 'Questions' + (unansweredQs > 0 ? '<span class="badge-count">' + unansweredQs + '</span>' : ''));
+			html += floatNavTab('retros', 'Retros & Decisions');
+			html += floatNavTab('backlog', 'Backlog');
+			html += '</div></div>';
+			html += '<div class="content-body">';
+
+			// Features tab
+			html += '<div class="tab-content active" id="tab-features">';
+			if (data.features.length === 0) {
+				html += '<p class="empty">No features defined yet.</p>';
+			} else {
+				data.features.forEach(f => {
+					const fTasks = tasks.filter(t => t.feature_id === f.id);
+					html += '<div class="card feature-card">';
+					html += '<div class="feature-header">';
+					html += '<span class="feature-title">' + esc(f.title) + '</span>';
+					html += '<span style="color:var(--g500);font-size:0.8rem;">#' + f.id + '</span>';
+					html += '</div>';
+					html += '<div class="pipeline-bar">';
+					[3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].forEach(step => {
+						const stepTask = fTasks.find(t => t.step_number === step);
+						let cls = '';
+						let label = step;
+						if (stepTask) {
+							cls = stepTask.status === 'done' ? 'done' : stepTask.status === 'in_progress' ? 'in_progress' : stepTask.status === 'blocked' ? 'blocked' : stepTask.status === 'paused' ? 'paused' : '';
+							label = stepTask.step_name || step;
+						}
+						html += '<div class="pipeline-step ' + cls + '" title="' + (stepTask ? stepTask.step_name + ' (' + stepTask.status + ')' : 'Step ' + step + ' (not started)') + '">' + label + '</div>';
+					});
+					html += '</div>';
+					if (f.spec_count > 0) {
+						html += '<div style="font-size:0.8rem;color:var(--g500);">Tests: ';
+						html += '<span style="color:var(--green);">' + f.passed_count + ' passed</span>';
+						if (f.failed_count > 0) html += ' · <span style="color:var(--red);">' + f.failed_count + ' failed</span>';
+						html += ' / ' + f.spec_count + ' total</div>';
+					}
+					html += '</div>';
+				});
+			}
+			html += '</div>';
+
+			// Tasks tab
+			html += '<div class="tab-content" id="tab-tasks">';
+			if (tasks.length === 0) {
+				html += '<p class="empty">No tasks yet.</p>';
+			} else {
+				html += '<div class="card scroll-x"><table>';
+				html += '<tr><th>ID</th><th>Step</th><th>Feature</th><th>Agent</th><th>Status</th><th>Retry</th><th>Notes</th><th>Actions</th><th>Created</th></tr>';
+				tasks.forEach(t => {
+					const feature = data.features.find(f => f.id === t.feature_id);
+					html += '<tr>';
+					html += '<td>' + t.id + '</td>';
+					html += '<td>' + t.step_number + '. ' + esc(t.step_name) + '</td>';
+					html += '<td>' + (feature ? esc(feature.title) : '—') + '</td>';
+					html += '<td>' + esc(t.agent_role) + '</td>';
+					html += '<td><span class="badge badge-' + t.status + '">' + t.status + '</span></td>';
+					html += '<td>' + t.retry_count + '</td>';
+					html += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(t.rejection_notes || '') + '">' + esc(t.rejection_notes || '') + '</td>';
+					html += '<td class="td-actions">' + taskActions(t) + '</td>';
+					html += '<td style="white-space:nowrap;">' + (t.created_at || '').slice(0, 16) + '</td>';
+					html += '</tr>';
+				});
+				html += '</table></div>';
+			}
+			html += '</div>';
+
+			// Questions tab
+			html += '<div class="tab-content" id="tab-questions">';
+			if (!data.questions || data.questions.length === 0) {
+				html += '<p class="empty">No agent questions yet.</p>';
+			} else {
+				data.questions.forEach(q => {
+					const isAnswered = q.answer !== null && q.answer !== undefined;
+					html += '<div class="question-card' + (isAnswered ? ' answered' : '') + '">';
+					html += '<div class="question-meta">';
+					html += '<span class="badge badge-' + (isAnswered ? 'done' : 'in_progress') + '">' + (isAnswered ? 'Answered' : 'Waiting') + '</span>';
+					html += ' · ' + esc(q.agent_role || 'unknown') + ' · ' + (q.created_at || '').slice(0, 16);
+					html += '</div>';
+					html += '<div class="question-text">' + esc(q.question) + '</div>';
+					if (q.context) {
+						html += '<div style="font-size:0.8rem;color:var(--g500);margin-bottom:8px;">Context: ' + esc(q.context) + '</div>';
+					}
+					if (isAnswered) {
+						html += '<div style="font-size:0.85rem;color:var(--green);"><strong>Answer:</strong> ' + esc(q.answer) + '</div>';
+					} else {
+						let options = [];
+						try { options = JSON.parse(q.options || '[]'); } catch (e) { }
+						if (options.length > 0) {
+							html += '<div class="question-options">';
+							options.forEach(opt => {
+								html += '<div class="question-option" onclick="answerQuestion(' + q.id + ', \'' + escAttr(opt) + '\')">' + esc(opt) + '</div>';
+							});
+							html += '</div>';
+						}
+						html += '<div class="question-answer-form">';
+						html += '<input type="text" id="answer-' + q.id + '" placeholder="Type your answer..." onkeydown="if(event.key===\'Enter\')answerQuestion(' + q.id + ')" />';
+						html += '<button class="btn btn-success btn-sm" onclick="answerQuestion(' + q.id + ')">Send</button>';
+						html += '</div>';
+					}
+					html += '</div>';
+				});
+			}
+			html += '</div>';
+
+			// Retros & Decisions tab
+			html += '<div class="tab-content" id="tab-retros">';
+			if (data.retros.length === 0 && data.decisions.length === 0 && data.artefacts.length === 0) {
+				html += '<p class="empty">No retros or decisions yet.</p>';
+			} else {
+				if (data.retros.length > 0) {
+					html += '<h3 style="margin-top:0;">Retrospectives</h3>';
+					data.retros.forEach(r => {
+						html += '<div class="card">';
+						html += '<div style="font-weight:600;margin-bottom:4px;">' + esc(r.feature_title) + '</div>';
+						html += '<div style="font-size:0.85rem;white-space:pre-wrap;">' + esc(r.summary) + '</div>';
+						html += '<div style="font-size:0.75rem;color:var(--g500);margin-top:4px;">' + (r.created_at || '').slice(0, 16) + '</div>';
+						html += '</div>';
+					});
+				}
+				if (data.recommendations.length > 0) {
+					html += '<h3>Recommendations</h3>';
+					html += '<div class="card scroll-x"><table>';
+					html += '<tr><th>ID</th><th>Feature</th><th>Type</th><th>Description</th></tr>';
+					data.recommendations.forEach(r => {
+						html += '<tr><td>' + r.id + '</td><td>' + esc(r.feature_title) + '</td><td>' + esc(r.recommendation_type) + '</td><td>' + esc(r.description) + '</td></tr>';
+					});
+					html += '</table></div>';
+				}
+				if (data.decisions.length > 0) {
+					html += '<h3>Decisions</h3>';
+					html += '<div class="card scroll-x"><table>';
+					html += '<tr><th>ID</th><th>Feature</th><th>Decision</th><th>Rationale</th></tr>';
+					data.decisions.forEach(d => {
+						html += '<tr><td>' + d.id + '</td><td>' + esc(d.feature_title) + '</td><td>' + esc(d.decision) + '</td><td>' + esc(d.rationale || '') + '</td></tr>';
+					});
+					html += '</table></div>';
+				}
+				if (data.artefacts.length > 0) {
+					html += '<h3>Decision Artefacts</h3>';
+					data.artefacts.forEach(a => {
+						const typeClass = 'artefact-' + a.artefact_type;
+						html += '<div class="card">';
+						html += '<span class="' + typeClass + '" style="font-weight:600;text-transform:uppercase;font-size:0.75rem;">' + esc(a.artefact_type) + '</span> ';
+						html += '<span style="font-weight:600;">' + esc(a.title) + '</span>';
+						html += '<div style="font-size:0.85rem;margin-top:4px;white-space:pre-wrap;">' + esc(a.content) + '</div>';
+						html += '<div style="font-size:0.75rem;color:var(--g500);margin-top:4px;">' + esc(a.feature_title || '') + ' · ' + (a.created_at || '').slice(0, 16) + '</div>';
+						html += '</div>';
+					});
+				}
+			}
+			html += '</div>';
+
+			// Backlog tab
+			html += '<div class="tab-content" id="tab-backlog">';
+			if (data.backlog.length === 0) {
+				html += '<p class="empty">No backlog items.</p>';
+			} else {
+				html += '<div class="card scroll-x"><table>';
+				html += '<tr><th>ID</th><th>Title</th><th>Status</th><th>Priority</th><th>Description</th></tr>';
+				data.backlog.forEach(b => {
+					html += '<tr><td>' + b.id + '</td><td>' + esc(b.title) + '</td>';
+					html += '<td><span class="badge badge-' + b.status + '">' + b.status + '</span></td>';
+					html += '<td>' + esc(b.priority || '') + '</td><td>' + esc(b.description || '') + '</td></tr>';
+				});
+				html += '</table></div>';
+			}
+			html += '</div>';
+
+			html += '</div></div>'; // close content-body and content-with-nav
+
+			el.innerHTML = html;
+
+			// Wire up floating nav tabs
+			document.querySelectorAll('.float-nav-a').forEach(tab => {
+				tab.addEventListener('click', () => {
+					document.querySelectorAll('.float-nav-a').forEach(t => t.classList.remove('active'));
+					document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+					tab.classList.add('active');
+					document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+				});
+			});
+		}
+
+		function taskActions(t) {
+			let html = '';
+			const role = t.agent_role;
+			if (t.status === 'pending' || t.status === 'in_progress') {
+				const prompt = 'Work on task ' + t.id + ' (step ' + t.step_number + ': ' + t.step_name + ') for project ' + currentProjectId;
+				html += '<a class="btn btn-primary btn-sm" href="' + agentLink(role, prompt) + '" title="Run ' + role + ' agent for this task">▶ Run</a> ';
+			}
+			if (t.status === 'pending') {
+				html += '<button class="btn btn-sm" onclick="claimTask(' + t.id + ')" title="Claim this task">Claim</button> ';
+				html += '<button class="btn btn-warning btn-sm" onclick="pauseTask(' + t.id + ')" title="Pause this task">⏸</button> ';
+			}
+			if (t.status === 'in_progress') {
+				html += '<button class="btn btn-success btn-sm" onclick="approveTask(' + t.id + ')" title="Approve this task">✓</button> ';
+				html += '<button class="btn btn-danger btn-sm" onclick="rejectTask(' + t.id + ')" title="Reject this task">✗</button> ';
+				html += '<button class="btn btn-warning btn-sm" onclick="pauseTask(' + t.id + ')" title="Pause this task">⏸</button> ';
+			}
+			if (t.status === 'paused') {
+				html += '<button class="btn btn-success btn-sm" onclick="resumeTask(' + t.id + ')" title="Resume this task">▶</button> ';
+			}
+			if (t.status === 'blocked' || t.status === 'rejected') {
+				html += '<button class="btn btn-sm" onclick="resetTask(' + t.id + ')" title="Reset to pending">↻ Reset</button> ';
+			}
+			return html;
+		}
+
+		function statCard(n, label, color) {
+			return '<div class="stat-card"><div class="number" style="color:' + color + '">' + n + '</div><div class="label">' + label + '</div></div>';
+		}
+
+		function floatNavTab(id, label) {
+			return '<a class="float-nav-a' + (id === 'features' ? ' active' : '') + '" data-tab="' + id + '">' + label + '</a>';
+		}
+
+		function esc(s) {
+			if (!s) return '';
+			return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+		}
+
+		function escAttr(s) {
+			if (!s) return '';
+			return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+		}
+
+		// --- Action handlers ---
+		async function claimTask(taskId) {
+			const r = await postJSON(API + '/api/tasks/' + taskId + '/claim');
+			if (r.error) { showToast(r.error, 'error'); return; }
+			showToast('Task ' + taskId + ' claimed');
+			loadDashboard(currentProjectId);
+		}
+
+		async function approveTask(taskId) {
+			confirmAction('Approve Task', 'Mark task ' + taskId + ' as done and spawn next steps?', async (notes) => {
+				const r = await postJSON(API + '/api/tasks/' + taskId + '/approve', { notes: notes || '' });
+				if (r.error) { showToast(r.error, 'error'); return; }
+				showToast('Task ' + taskId + ' approved');
+				loadDashboard(currentProjectId);
+			});
+		}
+
+		async function rejectTask(taskId) {
+			confirmAction('Reject Task', 'Provide rejection feedback for task ' + taskId + ':', async (notes) => {
+				if (!notes) { showToast('Rejection notes required', 'error'); return; }
+				const r = await postJSON(API + '/api/tasks/' + taskId + '/reject', { notes: notes });
+				if (r.error) { showToast(r.error, 'error'); return; }
+				showToast('Task ' + taskId + ' rejected');
+				loadDashboard(currentProjectId);
+			}, true, 'Why is this being rejected?');
+		}
+
+		async function pauseTask(taskId) {
+			const r = await postJSON(API + '/api/tasks/' + taskId + '/pause');
+			if (r.error) { showToast(r.error, 'error'); return; }
+			showToast('Task ' + taskId + ' paused');
+			loadDashboard(currentProjectId);
+		}
+
+		async function resumeTask(taskId) {
+			const r = await postJSON(API + '/api/tasks/' + taskId + '/resume');
+			if (r.error) { showToast(r.error, 'error'); return; }
+			showToast('Task ' + taskId + ' resumed');
+			loadDashboard(currentProjectId);
+		}
+
+		async function resetTask(taskId) {
+			confirmAction('Reset Task', 'Reset task ' + taskId + ' to pending (retry_count = 0)?', async () => {
+				const r = await postJSON(API + '/api/tasks/' + taskId + '/reset');
+				if (r.error) { showToast(r.error, 'error'); return; }
+				showToast('Task ' + taskId + ' reset');
+				loadDashboard(currentProjectId);
+			});
+		}
+
+		async function pauseProject(projectId) {
+			confirmAction('Pause Project', 'Pause the project? In-progress tasks will continue, but no new tasks will be claimed.', async () => {
+				const r = await postJSON(API + '/api/projects/' + projectId + '/pause');
+				if (r.error) { showToast(r.error, 'error'); return; }
+				showToast('Project paused');
+				loadDashboard(currentProjectId);
+			});
+		}
+
+		async function resumeProject(projectId) {
+			const r = await postJSON(API + '/api/projects/' + projectId + '/resume');
+			if (r.error) { showToast(r.error, 'error'); return; }
+			showToast('Project resumed');
+			loadDashboard(currentProjectId);
+		}
+
+		async function answerQuestion(questionId, answer) {
+			if (!answer) {
+				answer = document.getElementById('answer-' + questionId)?.value;
+			}
+			if (!answer) { showToast('Please provide an answer', 'error'); return; }
+			const r = await postJSON(API + '/api/questions/' + questionId + '/answer', { answer: answer });
+			if (r.error) { showToast(r.error, 'error'); return; }
+			showToast('Answer submitted');
+			loadDashboard(currentProjectId);
+		}
+
+		function runAgent(role, prompt) {
+			const url = agentLink(role, prompt);
+			window.open(url, '_blank');
+		}
+
+		// --- Init ---
+		navigateTo('dashboard');
+	</script>
+</body>
+
+</html>

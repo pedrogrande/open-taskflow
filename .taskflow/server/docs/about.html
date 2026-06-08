@@ -1,0 +1,118 @@
+<div class="doc-content">
+	<h2>About TaskFlow</h2>
+	<p><strong>TaskFlow</strong> is a structured, database-driven development pipeline for VS Code + GitHub Copilot.</p>
+	<p>It gives your AI agents a shared memory, a defined process, and clear roles. Instead of one agent doing everything
+		in one long chat, each development activity is handled by a specialist agent, at the right step, with the right
+		context, and only when the previous step is approved.</p>
+
+	<h3>Task-Driven Architecture</h3>
+	<p>Every step in the pipeline — defining features, writing tests, building, reviewing, documenting — is represented as
+		a row in the <code>tasks</code> table. An agent can only write output for a step if it holds a valid claim on that
+		task. Once it submits, the task advances; the next agent in the sequence picks up from the database, not from the
+		chat.</p>
+	<p>This solves two common failure modes of Copilot agents:</p>
+	<ul>
+		<li><strong>Stale, over-broad context:</strong> each agent calls <code>read_task_context</code> and receives a
+			scoped payload assembled for that step only.</li>
+		<li><strong>No audit trail:</strong> every decision, approval, retro, and test result is written to the database,
+			not buried in chat history.</li>
+	</ul>
+
+	<h3>Review Gates</h3>
+	<p>TaskFlow applies a dedicated reviewer agent to every major output before the pipeline can advance:</p>
+	<ul>
+		<li><strong>PM Reviewer</strong> approves the feature set (step 4) before any build work begins, and performs final
+			verification at step 13.</li>
+		<li><strong>Test Reviewer</strong> approves test specs (step 6) before the Builder is authorised to implement.</li>
+		<li><strong>PM Reviewer</strong> approves decisions (step 11) before they are formalised as decision artefacts.</li>
+	</ul>
+
+	<h3>Key Features</h3>
+	<div class="card-grid">
+		<div class="info-card">
+			<h3>Zero Install</h3>
+			<p>VS Code detects <code>.vscode/mcp.json</code> on startup and launches the MCP server via <code>uv</code>
+				automatically.</p>
+		</div>
+		<div class="info-card">
+			<h3>Shared Brief</h3>
+			<p>Every agent draws from the same structured brief stored in the database, not from re-reading files or chat
+				history.</p>
+		</div>
+		<div class="info-card">
+			<h3>Autonomous by Default</h3>
+			<p>The Orchestrator runs the entire pipeline hands-off. But every step can also be invoked directly.</p>
+		</div>
+		<div class="info-card">
+			<h3>Built-in Retry</h3>
+			<p>If a task fails three times it becomes <code>blocked</code> and the Orchestrator escalates. You can also reset
+				or force-advance tasks.</p>
+		</div>
+		<div class="info-card">
+			<h3>Cycling Pipeline</h3>
+			<p>Steps 5–13 repeat per feature. New-feature recommendations feed back into step 3 as the next cycle's backlog.
+			</p>
+		</div>
+		<div class="info-card">
+			<h3>Control Plane</h3>
+			<p>This dashboard gives you full visibility and control: approve, reject, pause, resume, and answer agent
+				questions.</p>
+		</div>
+	</div>
+
+	<h3>Agents &amp; Roles</h3>
+	<div class="card scroll-x" style="margin-top:12px;">
+		<table>
+			<tr>
+				<th>Agent</th>
+				<th>Steps</th>
+				<th>Role</th>
+			</tr>
+			<tr>
+				<td>Project Initiation Manager</td>
+				<td>Pre-pipeline</td>
+				<td>Creates project brief conversationally or ingests a brief JSON file</td>
+			</tr>
+			<tr>
+				<td>Dev Manager</td>
+				<td>Pre-pipeline</td>
+				<td>Configures MCP servers, skills, and agent capabilities for the tech stack</td>
+			</tr>
+			<tr>
+				<td>Orchestrator</td>
+				<td>3–13</td>
+				<td>Runs the full pipeline autonomously; retries on failure; escalates when blocked</td>
+			</tr>
+			<tr>
+				<td>Product Manager</td>
+				<td>3, 10, 12</td>
+				<td>Defines features + DoD; writes decisions; formalises decision artefacts</td>
+			</tr>
+			<tr>
+				<td>PM Reviewer</td>
+				<td>4, 11, 13</td>
+				<td>Approves features, decisions, and final verification</td>
+			</tr>
+			<tr>
+				<td>Tester</td>
+				<td>5, 8</td>
+				<td>Writes test specs per feature; executes tests against the build</td>
+			</tr>
+			<tr>
+				<td>Test Reviewer</td>
+				<td>6</td>
+				<td>Approves test specs before any build work is authorised</td>
+			</tr>
+			<tr>
+				<td>Builder</td>
+				<td>7</td>
+				<td>Implements features against approved test specs; the only agent with file access</td>
+			</tr>
+			<tr>
+				<td>Documenter</td>
+				<td>9</td>
+				<td>Writes feature retrospective and seeds recommendations</td>
+			</tr>
+		</table>
+	</div>
+</div>

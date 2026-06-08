@@ -2473,6 +2473,212 @@ def reject_task(task_id: int, notes: str) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Pause/resume tools
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def pause_task(task_id: int) -> dict[str, Any]:
+    """Pause a pending or in_progress task. Agents will skip it until resumed.
+
+    Use this to temporarily halt a task without rejecting it. The task
+    retains its current state and can be resumed later.
+
+    Args:
+        task_id: The ID of the task to pause.
+    """
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"Task {task_id} not found")
+        if row["status"] not in ("pending", "in_progress"):
+            raise ValueError(
+                f"Task {task_id} cannot be paused: status is '{row['status']}'"
+            )
+        conn.execute("UPDATE tasks SET status = 'paused' WHERE id = ?", (task_id,))
+        conn.commit()
+        updated = conn.execute(
+            "SELECT * FROM tasks WHERE id = ?", (task_id,)
+        ).fetchone()
+        return _row_to_dict(updated)
+    finally:
+        conn.close()
+
+
+@mcp.tool()
+def resume_task(task_id: int) -> dict[str, Any]:
+    """Resume a paused task back to pending status.
+
+    Args:
+        task_id: The ID of the task to resume.
+    """
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if row is None:
+            raise ValueError(f"Task {task_id} not found")
+        if row["status"] != "paused":
+            raise ValueError(
+                f"Task {task_id} cannot be resumed: status is '{row['status']}'"
+            )
+        conn.execute("UPDATE tasks SET status = 'pending' WHERE id = ?", (task_id,))
+        conn.commit()
+        updated = conn.execute(
+            "SELECT * FROM tasks WHERE id = ?", (task_id,)
+        ).fetchone()
+        return _row_to_dict(updated)
+    finally:
+        conn.close()
+
+
+@mcp.tool()
+def pause_project(project_id: int) -> dict[str, Any]:
+    """Pause a project. No new tasks will be claimed while paused.
+
+    In-progress tasks continue to completion. Only prevents new claims.
+
+    Args:
+        project_id: The project to pause.
+    """
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT * FROM projects WHERE id = ?", (project_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Project {project_id} not found")
+        if row["status"] != "active":
+            raise ValueError(
+                f"Project {project_id} cannot be paused: status is '{row['status']}'"
+            )
+        conn.execute(
+            "UPDATE projects SET status = 'paused' WHERE id = ?", (project_id,)
+        )
+        conn.commit()
+        updated = conn.execute(
+            "SELECT * FROM projects WHERE id = ?", (project_id,)
+        ).fetchone()
+        return _row_to_dict(updated)
+    finally:
+        conn.close()
+
+
+@mcp.tool()
+def resume_project(project_id: int) -> dict[str, Any]:
+    """Resume a paused project back to active.
+
+    Args:
+        project_id: The project to resume.
+    """
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT * FROM projects WHERE id = ?", (project_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Project {project_id} not found")
+        if row["status"] != "paused":
+            raise ValueError(
+                f"Project {project_id} cannot be resumed: status is '{row['status']}'"
+            )
+        conn.execute(
+            "UPDATE projects SET status = 'active' WHERE id = ?", (project_id,)
+        )
+        conn.commit()
+        updated = conn.execute(
+            "SELECT * FROM projects WHERE id = ?", (project_id,)
+        ).fetchone()
+        return _row_to_dict(updated)
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Agent questions (human-in-the-loop via dashboard)
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+def ask_human(
+    project_id: int,
+    question: str,
+    options: list[str] | None = None,
+    context: str | None = None,
+    task_id: int | None = None,
+) -> dict[str, Any]:
+    """Post a question for the human. Returns question ID.
+
+    Use when you need a decision or clarification that blocks your work.
+    The question will appear in the TaskFlow Dashboard. Poll read_answer
+    until the human responds.
+
+    Args:
+        project_id: The project this question relates to.
+        question:   The question to ask the human.
+        options:    Optional list of suggested answers the human can choose from.
+        context:    Optional additional context to help the human decide.
+        task_id:    Optional task ID this question is associated with.
+    """
+    conn = _get_conn()
+    try:
+        # Determine agent_role from the current task if task_id provided
+        agent_role = "unknown"
+        if task_id:
+            task_row = conn.execute(
+                "SELECT agent_role FROM tasks WHERE id = ?", (task_id,)
+            ).fetchone()
+            if task_row:
+                agent_role = task_row["agent_role"]
+
+        cur = conn.execute(
+            """
+            INSERT INTO agent_questions (project_id, task_id, agent_role, question, options, context)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                project_id,
+                task_id,
+                agent_role,
+                question,
+                json.dumps(options) if options else None,
+                context,
+            ),
+        )
+        question_id = cur.lastrowid
+        conn.commit()
+
+        row = conn.execute(
+            "SELECT * FROM agent_questions WHERE id = ?", (question_id,)
+        ).fetchone()
+        return _row_to_dict(row)
+    finally:
+        conn.close()
+
+
+@mcp.tool()
+def read_answer(question_id: int) -> dict[str, Any]:
+    """Check if a human has answered your question.
+
+    Returns the full question record including the answer field.
+    If answer is null, the human has not yet responded — keep polling.
+
+    Args:
+        question_id: The ID of the question to check.
+    """
+    conn = _get_conn()
+    try:
+        row = conn.execute(
+            "SELECT * FROM agent_questions WHERE id = ?", (question_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Question {question_id} not found")
+        return _row_to_dict(row)
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
 # Tester tools
 # ---------------------------------------------------------------------------
 

@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS projects (
     deadline_reason         TEXT,
     platforms               TEXT,   -- JSON array of platform strings
     -- ---- --
-    status      TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'complete', 'archived')),
+    status      TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'complete', 'archived')),
     created_at  TEXT NOT NULL DEFAULT (datetime('now', 'utc'))
 );
 
@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS tasks (
                         'product_manager', 'pm_reviewer', 'tester',
                         'test_reviewer', 'builder', 'documenter')),
     status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN (
-                        'pending', 'in_progress', 'done', 'rejected', 'blocked')),
+                        'pending', 'in_progress', 'done', 'rejected', 'blocked', 'paused')),
     rejection_notes TEXT,
     retry_count     INTEGER NOT NULL DEFAULT 0,
     task_data       TEXT,  -- JSON blob for step-specific input (e.g. brief file path)
@@ -350,4 +350,21 @@ CREATE TABLE IF NOT EXISTS team_setup (
     agents_created      TEXT,  -- JSON array of {name, file}
     created_at          TEXT NOT NULL DEFAULT (datetime('now', 'utc')),
     updated_at          TEXT NOT NULL DEFAULT (datetime('now', 'utc'))
+);
+
+-- ---------------------------------------------------------------------------
+-- Agent questions (human-in-the-loop via dashboard)
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS agent_questions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id  INTEGER NOT NULL REFERENCES projects(id),
+    task_id     INTEGER REFERENCES tasks(id),
+    agent_role  TEXT NOT NULL,
+    question    TEXT NOT NULL,
+    options     TEXT,       -- JSON array of option strings
+    context     TEXT,       -- additional context the agent provides
+    answer      TEXT,       -- null until answered
+    answered_at TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now', 'utc'))
 );
